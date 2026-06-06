@@ -1,0 +1,114 @@
+/* Google Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ─── Global Reset & Variables ─────────────────────────────── */
+:root {
+  --primary: #dc2626;
+  --primary-dark: #991b1b;
+  --bg-dark: #0a0a0f;
+  --bg-card: #111118;
+  --bg-surface: #1a1a24;
+  --bg-elevated: #22222e;
+  --text-primary: #f8f8ff;
+  --text-secondary: #9898b0;
+  --text-muted: #555570;
+  --border: #2a2a3a;
+  --glass: rgba(255, 255, 255, 0.04);
+  --glass-border: rgba(255, 255, 255, 0.08);
+  --online: #22c55e;
+  --warning: #f59e0b;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body, #root {
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+}
+
+body {
+  font-family: 'Outfit', Inter, system-ui, sans-serif;
+  background: var(--bg-dark);
+  color: var(--text-primary);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ─── Scrollbars ────────────────────────────────────────────── */
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 999px;
+}
+::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+
+/* ─── Glassmorphism ─────────────────────────────────────────── */
+.glass {
+  background: var(--glass);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid var(--glass-border);
+}
+
+/* ─── Animations ────────────────────────────────────────────── */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pulse-ring {
+  0%   { transform: scale(1);   opacity: 0.6; }
+  100% { transform: scale(1.5); opacity: 0; }
+}
+
+@keyframes slide-in {
+  from { opacity: 0; transform: translateX(-12px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes spin-slow {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+.animate-fade-in   { animation: fadeIn 0.3s ease forwards; }
+.animate-slide-in  { animation: slide-in 0.25s ease forwards; }
+.animate-spin-slow { animation: spin-slow 8s linear infinite; }
+
+/* ─── Pulse ring for live indicators ───────────────────────── */
+.pulse-ring::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: var(--online);
+  animation: pulse-ring 1.5s ease-out infinite;
+}
+
+/* ─── Message Bubbles ───────────────────────────────────────── */
+.bubble-self {
+  background: var(--primary);
+  border-radius: 18px 18px 4px 18px;
+}
+.bubble-other {
+  background: var(--bg-elevated);
+  border-radius: 18px 18px 18px 4px;
+  border: 1px solid var(--border);
+}
+
+/* ─── Caption ticker ────────────────────────────────────────── */
+.caption-enter {
+  animation: fadeIn 0.2s ease;
+}
