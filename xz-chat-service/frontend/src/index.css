@@ -1,0 +1,180 @@
+/* Google Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ─── Global Reset & Variables ─────────────────────────────── */
+:root {
+  /* Default: Light Mode matching Figma (Dulled warm stone palette) */
+  --primary: #8A1E24;
+  --primary-dark: #6E181D;
+  --bg-dark: #ECE9E6;
+  --bg-card: #FAF8F7;
+  --bg-surface: #ECE9E6;
+  --bg-elevated: #DFDAD7;
+  --text-primary: #1F1C1B;
+  --text-secondary: #5C5552;
+  --text-muted: #7D7571;
+  --border: #DDD7D3;
+  --glass: rgba(250, 248, 247, 0.65);
+  --glass-border: rgba(0, 0, 0, 0.05);
+  --online: #16a34a;
+  --warning: #dc2626;
+  --bubble-incoming: #E5E1DE;
+  --bubble-incoming-text: #1F1C1B;
+  --bubble-outgoing: #8A1E24;
+  --bubble-outgoing-text: #FFFFFF;
+}
+
+body.dark, html.dark, .dark {
+  /* Dark Mode matching original dark theme but with higher text contrast */
+  --primary: #ef4444;
+  --primary-dark: #b91c1c;
+  --bg-dark: #09090d;
+  --bg-card: #101016;
+  --bg-surface: #181822;
+  --bg-elevated: #20202c;
+  --text-primary: #ffffff;
+  --text-secondary: #d1d1e0;
+  --text-muted: #9c9cb5;
+  --border: #2c2c3e;
+  --glass: rgba(255, 255, 255, 0.04);
+  --glass-border: rgba(255, 255, 255, 0.08);
+  --online: #22c55e;
+  --warning: #ef4444;
+  --bubble-incoming: #20202c;
+  --bubble-incoming-text: #ffffff;
+  --bubble-outgoing: #ef4444;
+  --bubble-outgoing-text: #ffffff;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body, #root {
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+}
+
+body {
+  font-family: 'Outfit', Inter, system-ui, sans-serif;
+  background: var(--bg-dark);
+  color: var(--text-primary);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ─── Scrollbars ────────────────────────────────────────────── */
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 999px;
+}
+::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+
+/* ─── Glassmorphism ─────────────────────────────────────────── */
+.glass {
+  background: var(--glass);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid var(--glass-border);
+}
+
+/* ─── Animations ────────────────────────────────────────────── */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pulse-ring {
+  0%   { transform: scale(1);   opacity: 0.6; }
+  100% { transform: scale(1.5); opacity: 0; }
+}
+
+@keyframes slide-in {
+  from { opacity: 0; transform: translateX(-12px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes spin-slow {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+.animate-fade-in   { animation: fadeIn 0.3s ease forwards; }
+.animate-slide-in  { animation: slide-in 0.25s ease forwards; }
+.animate-spin-slow { animation: spin-slow 8s linear infinite; }
+
+/* ─── Pulse ring for live indicators ───────────────────────── */
+.pulse-ring::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: var(--online);
+  animation: pulse-ring 1.5s ease-out infinite;
+}
+
+/* ─── Message Bubbles ───────────────────────────────────────── */
+.bubble-self {
+  background: var(--bubble-outgoing);
+  color: var(--bubble-outgoing-text);
+  border-radius: 18px 18px 4px 18px;
+}
+.bubble-other {
+  background: var(--bubble-incoming);
+  color: var(--bubble-incoming-text);
+  border-radius: 18px 18px 18px 4px;
+  border: 1px solid var(--border);
+}
+
+/* ─── Caption ticker ────────────────────────────────────────── */
+.caption-enter {
+  animation: fadeIn 0.2s ease;
+}
+
+/* ─── Mobile Responsiveness & Layout Overrides ──────────────── */
+@media (max-width: 768px) {
+  .desktop-sidebar {
+    display: none !important;
+  }
+  .mobile-bottom-nav {
+    display: flex !important;
+  }
+  .mobile-hide {
+    display: none !important;
+  }
+}
+
+/* Translucent hover buttons with brand red / dark theme high-contrast support */
+.btn-hover-primary {
+  transition: all 0.2s ease-in-out;
+}
+.btn-hover-primary:hover {
+  background-color: rgba(138, 30, 36, 0.1) !important;
+  color: var(--primary) !important;
+}
+.dark .btn-hover-primary:hover {
+  background-color: rgba(255, 255, 255, 0.05) !important;
+  color: #ffffff !important;
+}
+
+/* Hide scrollbar for Chrome, Safari and Opera */
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+/* Hide scrollbar for IE, Edge and Firefox */
+.scrollbar-none {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+
