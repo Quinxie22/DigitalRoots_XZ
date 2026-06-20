@@ -10,7 +10,8 @@ export class ChatService {
   static async getOrCreateThread(
     participants: string[],
     threadType: 'direct' | 'group' = 'direct',
-    threadName?: string
+    threadName?: string,
+    discussionTopic?: string
   ): Promise<any> {
     const threadId = Thread.generateThreadId(participants);
     
@@ -26,8 +27,13 @@ export class ChatService {
         threadType,
         threadName: threadName || (threadType === 'direct' ? undefined : 'Group Chat'),
         unreadCount: unreadMap,
+        discussionTopic: discussionTopic || '',
       });
       logger.info(`Created new thread: ${threadId}`);
+    } else if (discussionTopic !== undefined && discussionTopic.trim() !== '') {
+      thread.discussionTopic = discussionTopic;
+      await thread.save();
+      logger.info(`Updated existing thread ${threadId} discussion topic to: "${discussionTopic}"`);
     }
     
     return thread;

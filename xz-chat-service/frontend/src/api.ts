@@ -29,10 +29,11 @@ export async function getThreads(token: string) {
   return res.json();
 }
 
-export async function getOrCreateThread(token: string, targetUserId: string) {
+export async function getOrCreateThread(token: string, targetUserId: string, topic?: string) {
   const res = await fetch(`${BACKEND_URL}/api/chat/threads/${targetUserId}`, {
     method: 'POST',
     headers: authHeaders(token),
+    body: topic ? JSON.stringify({ topic }) : undefined,
   });
   if (!res.ok) throw new Error(`getOrCreateThread failed: ${res.status}`);
   return res.json();

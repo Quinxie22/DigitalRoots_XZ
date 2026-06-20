@@ -90,6 +90,12 @@ function playNotificationSound() {
 
 export default function App() {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [windowWidth, setWindowWidth] = useState(window.innerWidth);
+  useEffect(() => {
+    const handleResize = () => setWindowWidth(window.innerWidth);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
   const [loadingSession, setLoadingSession] = useState(true);
   const [activeTab, setActiveTab] = useState<'home' | 'messages' | 'archive' | 'wisdom' | 'settings' | 'mentoring' | 'interviews' | 'notifications'>('messages');
   const [autoplayStory, setAutoplayStory] = useState<any | null>(null);
@@ -146,6 +152,9 @@ export default function App() {
 
   // Report states
   const [showReportModal, setShowReportModal] = useState(false);
+  const [showProfileSidebarModal, setShowProfileSidebarModal] = useState(false);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [previewMedia, setPreviewMedia] = useState<{ type: 'image' | 'video', url: string } | null>(null);
   const [reportReason, setReportReason] = useState('');
   const [reporting, setReporting] = useState(false);
 
@@ -759,6 +768,7 @@ export default function App() {
   // Handle message deletion
   const handleDeleteMessage = async (messageId: string) => {
     if (!currentUser || !selectedThreadId) return;
+    if (!window.confirm("Are you sure you want to delete this message?")) return;
     try {
       await deleteMessage(currentUser.id, selectedThreadId, messageId);
       setMessages(prev => prev.map(m =>
@@ -927,6 +937,10 @@ export default function App() {
 
   const otherIsOnline = otherUser ? onlineUsers.includes(otherUser.id) : false;
 
+  const displayName = otherUser 
+    ? (otherUser.name.length > 12 && windowWidth <= 340 ? otherUser.name.split(' ')[0] : otherUser.name)
+    : '';
+
   return (
     <div className="flex flex-col h-screen w-screen overflow-hidden select-none bg-[var(--bg-dark)]"
          style={{ color: 'var(--text-primary)' }}>
@@ -949,7 +963,7 @@ export default function App() {
                 </linearGradient>
               </defs>
             </svg>
-            <div className="flex flex-col gap-0.5">
+            <div className="flex flex-col gap-0.5 xs-hide">
               <span className="text-sm font-bold tracking-tight uppercase leading-none" style={{ color: 'var(--primary)' }}>
                 Digital Roots
               </span>
@@ -962,7 +976,7 @@ export default function App() {
             {/* Info Icon */}
             <button
               onClick={() => setShowInfoModal(true)}
-              className="p-1.5 rounded-full hover:bg-[var(--bg-elevated)] text-stone-500 hover:text-stone-850 dark:text-stone-400 dark:hover:text-white transition-all hover:scale-105 cursor-pointer flex items-center justify-center"
+              className="p-1.5 rounded-full hover:bg-[var(--bg-elevated)] text-stone-505 hover:text-stone-850 dark:text-stone-400 dark:hover:text-white transition-all hover:scale-105 cursor-pointer flex items-center justify-center"
               title="About Digital Roots"
             >
               <Info size={18} />
@@ -998,16 +1012,6 @@ export default function App() {
                 )}
               </div>
             </div>
-
-            {/* Log Out Button */}
-            <button
-              onClick={handleLogout}
-              className="px-2.5 py-1.5 rounded-xl text-white font-bold text-[10px] hover:scale-[1.02] transition-all flex items-center gap-1 active:scale-95 shadow-sm cursor-pointer"
-              style={{ background: 'var(--primary)' }}
-            >
-              <LogOut size={12} />
-              <span>Log Out</span>
-            </button>
           </div>
         </header>
       )}
@@ -1166,16 +1170,20 @@ export default function App() {
             className="flex items-center gap-3 p-2 rounded-2xl bg-[var(--bg-elevated)] hover:bg-[var(--bg-card)] border border-transparent hover:border-[var(--border)] transition-all duration-200 cursor-pointer hover:scale-[1.02] active:scale-[0.98]"
             title="View my profile"
           >
-            <div className={`w-9 h-9 rounded-xl flex items-center justify-center text-xs font-bold text-white bg-gradient-to-br overflow-hidden ${getUserInfo(currentUser.id).color}`}>
-              {currentUser.avatar && (currentUser.avatar.startsWith('http') || currentUser.avatar.startsWith('/') || currentUser.avatar.includes('.')) ? (
-                <img src={currentUser.avatar} alt={currentUser.name} className="w-full h-full object-cover" />
-              ) : (
-                getUserInfo(currentUser.id).initials
-              )}
+            <div className="relative flex-shrink-0">
+              <div className={`w-9 h-9 rounded-xl flex items-center justify-center text-xs font-bold text-white bg-gradient-to-br overflow-hidden ${getUserInfo(currentUser.id).color}`}>
+                {currentUser.avatar && (currentUser.avatar.startsWith('http') || currentUser.avatar.startsWith('/') || currentUser.avatar.includes('.')) ? (
+                  <img src={currentUser.avatar} alt={currentUser.name} className="w-full h-full object-cover" />
+                ) : (
+                  getUserInfo(currentUser.id).initials
+                )}
+              </div>
+              {/* Online green dot indicator for self */}
+              <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border bg-[var(--online)]"
+                    style={{ borderColor: 'var(--bg-card)' }} />
             </div>
             <div className="flex-grow min-w-0">
               <p className="text-xs font-bold truncate text-[var(--text-primary)]">{currentUser.name}</p>
-              <p className="text-[10px] text-[var(--text-muted)] truncate capitalize">{currentUser.role || 'Member'}</p>
             </div>
           </div>
         </div>
@@ -1255,103 +1263,102 @@ export default function App() {
               </div>
             )}
 
-            {/* Middle Chat Pane (below CallView if calling, or 100% height) */}
             <div className="flex-1 flex flex-col min-h-0 overflow-hidden relative">
-              
-              {/* Chat Pane Header */}
               <div className="h-16 flex-shrink-0 flex items-center justify-between px-6 border-b"
                    style={{ background: 'var(--bg-card)', borderColor: 'var(--border)' }}>
                 <div className="flex items-center gap-3 min-w-0 flex-1 pr-4">
-                  {/* Back button */}
                   <button 
                     onClick={() => setSelectedThreadId(null)}
                     type="button"
-                    className="p-2 -ml-2 rounded-xl text-stone-500 btn-hover-primary transition-all flex items-center justify-center flex-shrink-0"
+                    className="p-2 -ml-2 rounded-xl text-stone-550 btn-hover-primary transition-all flex items-center justify-center flex-shrink-0"
                     title="Back to conversations">
                     <ArrowLeft size={16} />
                   </button>
 
+                  <div 
+                    onClick={() => setShowProfileSidebarModal(true)}
+                    className="relative cursor-pointer hover:scale-105 transition-transform flex-shrink-0"
+                    title="View details"
+                  >
+                    <div className={`w-8 h-8 rounded-xl flex items-center justify-center text-xs font-bold text-white bg-gradient-to-br overflow-hidden ${otherUser?.color || 'from-stone-655 to-stone-800'}`}>
+                      {otherUser?.avatar && (otherUser.avatar.startsWith('http') || otherUser.avatar.startsWith('/') || otherUser.avatar.includes('.')) ? (
+                        <img src={resolveMediaUrl(otherUser.avatar)} alt={otherUser.name} className="w-full h-full object-cover" />
+                      ) : (
+                        otherUser?.initials || '??'
+                      )}
+                    </div>
+                    <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border"
+                          style={{ 
+                            borderColor: 'var(--bg-card)',
+                            background: otherIsOnline ? 'var(--online)' : '#6b7280'
+                          }} />
+                  </div>
+
                   <div className="flex flex-col min-w-0 flex-1">
                     <div className="flex items-center gap-2">
-                      <span className="font-semibold truncate cursor-pointer hover:underline" style={{ color: 'var(--text-primary)' }} onClick={() => setViewedProfileUserId(otherUser?.id || '')}>
-                        {otherUser?.name}
+                      <span className="font-semibold truncate cursor-pointer hover:underline text-xs xs:text-sm" style={{ color: 'var(--text-primary)' }} onClick={() => setViewedProfileUserId(otherUser?.id || '')}>
+                        {displayName}
                       </span>
-                    <span className="w-1.5 h-1.5 rounded-full flex-shrink-0 animate-pulse"
-                          style={{
-                            background: otherIsOnline ? 'var(--online)' : '#6b7280',
-                            transition: 'background 0.3s ease',
-                          }} />
-                    <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>
-                      {otherIsOnline ? 'online' : 'offline'}
-                    </span>
-                  </div>
-                  
-                  {/* Topic Edit / Display */}
-                  <div className="flex items-center gap-1.5 text-xs mt-0.5 truncate select-none text-gray-400">
-                    <span className="font-semibold text-red-500 whitespace-nowrap" style={{ color: 'var(--primary)' }}>TOPIC:</span>
-                    {isEditingTopic ? (
-                      <div className="flex items-center gap-1.5 w-full">
-                        <input
-                          type="text"
-                          value={topicText}
-                          onChange={(e) => setTopicText(e.target.value)}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter') handleUpdateTopic();
-                            if (e.key === 'Escape') setIsEditingTopic(false);
-                          }}
-                          className="px-2 py-0.5 rounded outline-none border text-white text-xs flex-1 bg-[#1a1a26]"
-                          style={{ borderColor: 'var(--primary)' }}
-                          autoFocus
-                        />
-                        <button onClick={handleUpdateTopic} className="text-green-500 hover:text-green-400">
-                          <Check size={13} />
-                        </button>
-                        <button onClick={() => setIsEditingTopic(false)} className="text-red-500 hover:text-red-400">
-                          <X size={13} />
-                        </button>
-                      </div>
-                    ) : (
-                      <div className="flex items-center gap-1.5 truncate group cursor-pointer"
-                           onClick={() => {
-                             setTopicText(activeThread?.discussionTopic || '');
-                             setIsEditingTopic(true);
-                           }}>
-                        <span className="truncate italic text-stone-500 dark:text-stone-400">
-                          "{activeThread?.discussionTopic || 'The first road trip across the coast, 1958'}"
-                        </span>
-                        <Edit3 size={11} className="opacity-0 group-hover:opacity-100 text-stone-400 transition-opacity" />
+                    </div>
+                    
+                    {activeThread?.discussionTopic && (
+                      <div className="flex items-center gap-1.5 text-[10px] mt-0.5 truncate select-none text-gray-400 xs-hide">
+                        <span className="font-semibold text-red-500 whitespace-nowrap" style={{ color: 'var(--primary)' }}>TOPIC:</span>
+                        {isEditingTopic ? (
+                          <div className="flex items-center gap-1.5 w-full">
+                            <input
+                              type="text"
+                              value={topicText}
+                              onChange={(e) => setTopicText(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') handleUpdateTopic();
+                                if (e.key === 'Escape') setIsEditingTopic(false);
+                              }}
+                              className="px-2 py-0.5 rounded outline-none border text-white text-xs flex-1 bg-[#1a1a26]"
+                              style={{ borderColor: 'var(--primary)' }}
+                              autoFocus
+                            />
+                            <button onClick={handleUpdateTopic} className="text-green-500 hover:text-green-400">
+                              <Check size={13} />
+                            </button>
+                            <button onClick={() => setIsEditingTopic(false)} className="text-red-500 hover:text-red-400">
+                              <X size={13} />
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-1.5 truncate group cursor-pointer"
+                               onClick={() => {
+                                 setTopicText(activeThread?.discussionTopic || '');
+                                 setIsEditingTopic(true);
+                               }}>
+                            <span className="truncate italic text-stone-505 dark:text-stone-400">
+                              "{activeThread?.discussionTopic}"
+                            </span>
+                            <Edit3 size={11} className="opacity-0 group-hover:opacity-100 text-stone-400 transition-opacity" />
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
                 </div>
-              </div>
 
-                {/* Actions group */}
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2 xs:gap-3">
                   {!isInCall && (
                     <button
                       onClick={() => handleStartCall(selectedThreadId, otherUser?.id || '')}
-                      className="w-10 h-10 rounded-xl flex items-center justify-center border text-stone-500 hover:text-stone-800 dark:text-stone-400 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/5 transition-all flex-shrink-0"
+                      className="w-8 h-8 xs:w-10 xs:h-10 rounded-xl flex items-center justify-center border text-stone-500 hover:text-stone-850 dark:text-stone-400 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/5 transition-all flex-shrink-0"
                       style={{ borderColor: 'var(--border)' }}
                       title="Start Call Session">
-                      <Phone size={16} />
+                      <Phone className="w-3.5 h-3.5 xs:w-4 xs:h-4" />
                     </button>
                   )}
 
                   <button
-                    onClick={() => fileInputRef.current?.click()}
-                    className="w-10 h-10 rounded-xl flex items-center justify-center border text-stone-500 hover:text-stone-800 dark:text-stone-400 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/5 transition-all flex-shrink-0"
-                    style={{ borderColor: 'var(--border)' }}
-                    title="Upload File to Archive">
-                    <Paperclip size={16} />
-                  </button>
-
-                  <button
                     onClick={() => setShowReportModal(true)}
-                    className="w-10 h-10 rounded-xl flex items-center justify-center border text-stone-500 hover:text-stone-800 dark:text-stone-400 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/5 transition-all flex-shrink-0"
+                    className="w-8 h-8 xs:w-10 xs:h-10 rounded-xl flex items-center justify-center border text-stone-500 hover:text-stone-850 dark:text-stone-400 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/5 transition-all flex-shrink-0"
                     style={{ borderColor: 'var(--border)' }}
                     title="Actions">
-                    <MoreVertical size={16} />
+                    <MoreVertical className="w-3.5 h-3.5 xs:w-4 xs:h-4" />
                   </button>
                 </div>
               </div>
@@ -1380,6 +1387,7 @@ export default function App() {
                     const prevMsg = i > 0 ? messages[i - 1] : null;
                     const prevMsgDate = prevMsg ? new Date(prevMsg.timestamp).toLocaleDateString([], { month: 'long', day: 'numeric', year: 'numeric' }) : null;
                     const showDateDivider = msgDate !== prevMsgDate;
+                    const mediaUrl = msg.fileMetadata?.url ? resolveMediaUrl(msg.fileMetadata.url) : '';
 
                     return (
                       <div key={msg.messageId || i} className="w-full flex flex-col">
@@ -1431,32 +1439,43 @@ export default function App() {
                                     <p className="whitespace-pre-wrap">{msg.content}</p>
                                   )}
 
-                                  {msg.type === 'image' && msg.fileMetadata?.url && (
-                                    <div className="rounded-lg overflow-hidden border border-black/5 max-w-xs">
-                                      <img src={resolveMediaUrl(msg.fileMetadata.url)} alt="Attachment" className="w-full h-auto object-cover max-h-48 cursor-pointer" />
+                                  {msg.type === 'image' && mediaUrl && (
+                                    <div 
+                                      className="rounded-lg overflow-hidden border border-black/5 max-w-xs cursor-pointer hover:opacity-90 transition-opacity"
+                                      onClick={() => setPreviewMedia({ type: 'image', url: mediaUrl })}
+                                    >
+                                      <img src={mediaUrl} alt="Attachment" className="w-full h-auto object-cover max-h-48" />
                                     </div>
                                   )}
 
-                                  {msg.type === 'video' && msg.fileMetadata?.url && (
-                                    <div className="rounded-lg overflow-hidden border border-black/5 max-w-xs">
-                                      <video src={resolveMediaUrl(msg.fileMetadata.url)} controls className="w-full h-auto max-h-48" />
+                                  {msg.type === 'video' && mediaUrl && (
+                                    <div 
+                                      className="rounded-lg overflow-hidden border border-black/5 max-w-xs cursor-pointer relative group hover:opacity-90 transition-opacity"
+                                      onClick={() => setPreviewMedia({ type: 'video', url: mediaUrl })}
+                                    >
+                                      <video src={mediaUrl} className="w-full h-auto max-h-48 pointer-events-none" />
+                                      <div className="absolute inset-0 flex items-center justify-center bg-black/30 group-hover:bg-black/45 transition-colors">
+                                        <div className="w-12 h-12 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center text-white border border-white/30 transition-transform group-hover:scale-110">
+                                          <Play size={20} fill="white" className="ml-0.5" />
+                                        </div>
+                                      </div>
                                     </div>
                                   )}
 
-                                  {msg.type === 'audio' && msg.fileMetadata?.url && (
+                                  {msg.type === 'audio' && mediaUrl && (
                                     <div className="py-1">
-                                      <audio src={resolveMediaUrl(msg.fileMetadata.url)} controls className="w-full max-w-[240px] h-8" />
+                                      <audio src={mediaUrl} controls className="w-full max-w-[240px] h-8" />
                                     </div>
                                   )}
 
-                                  {msg.type === 'document' && msg.fileMetadata?.url && (
-                                    <a href={resolveMediaUrl(msg.fileMetadata.url)} target="_blank" rel="noopener noreferrer"
+                                  {msg.type === 'document' && mediaUrl && (
+                                    <a href={mediaUrl} target="_blank" rel="noopener noreferrer"
                                        className="flex items-center gap-2 p-2 rounded-lg bg-black/5 dark:bg-black/25 border border-black/5 hover:bg-black/10 dark:hover:bg-black/45 transition-colors">
                                       <FileText size={16} className="text-red-500" />
                                       <div className="text-xs text-left min-w-0">
-                                        <p className="font-medium truncate max-w-[150px]">{msg.fileMetadata.fileName || 'Document'}</p>
+                                        <p className="font-medium truncate max-w-[150px]">{msg.fileMetadata?.fileName || 'Document'}</p>
                                         <p className="text-[10px] text-stone-500 dark:text-stone-400 mt-0.5">
-                                          {msg.fileMetadata.fileSize ? `${(msg.fileMetadata.fileSize / 1024 / 1024).toFixed(2)} MB` : 'Download'}
+                                          {msg.fileMetadata?.fileSize ? `${(msg.fileMetadata.fileSize / 1024 / 1024).toFixed(2)} MB` : 'Download'}
                                         </p>
                                       </div>
                                     </a>
@@ -1563,12 +1582,35 @@ export default function App() {
                     </button>
 
                     {/* Emoji Smiley Icon */}
-                    <button
-                      type="button"
-                      className="w-8 h-8 flex items-center justify-center text-stone-400 hover:text-stone-600 dark:text-stone-500 dark:hover:text-white transition-all flex-shrink-0"
-                      title="Insert emoji">
-                      <Smile size={18} />
-                    </button>
+                    <div className="relative">
+                      <button
+                        type="button"
+                        onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                        className={`w-8 h-8 flex items-center justify-center transition-all flex-shrink-0 cursor-pointer ${showEmojiPicker ? 'text-[var(--primary)]' : 'text-stone-400 hover:text-stone-600 dark:text-stone-500 dark:hover:text-white'}`}
+                        title="Insert emoji">
+                        <Smile size={18} />
+                      </button>
+                      {showEmojiPicker && (
+                        <div 
+                          className="absolute bottom-10 left-0 bg-[var(--bg-card)] border rounded-2xl p-2.5 shadow-xl z-50 grid grid-cols-6 gap-1.5 w-44 animate-fade-in"
+                          style={{ borderColor: 'var(--border)' }}
+                        >
+                          {['😀', '😂', '🥰', '👍', '🙏', '❤️', '🔥', '✨', '👏', '🎉', '🌟', '💡'].map(emoji => (
+                            <button
+                              key={emoji}
+                              type="button"
+                              onClick={() => {
+                                setInputText(prev => prev + emoji);
+                                setShowEmojiPicker(false);
+                              }}
+                              className="text-base hover:scale-125 transition-transform flex items-center justify-center p-1 rounded hover:bg-[var(--bg-elevated)] cursor-pointer"
+                            >
+                              {emoji}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                     
                     <input
                       ref={fileInputRef}
@@ -1584,7 +1626,7 @@ export default function App() {
                       placeholder={`Write to ${otherUser?.name || 'Archive colleague'}...`}
                       value={inputText}
                       onChange={handleInputChange}
-                      className="flex-grow px-4 py-2.5 text-xs rounded-xl outline-none border transition-colors"
+                      className="flex-grow px-3 xs:px-4 py-2.5 text-xs rounded-xl outline-none border transition-colors"
                       style={{
                         background: 'var(--bg-elevated)',
                         borderColor: 'var(--border)',
@@ -1596,7 +1638,7 @@ export default function App() {
                     <button
                       type="button"
                       onClick={startVoiceRecording}
-                      className="w-8 h-8 flex items-center justify-center text-stone-400 hover:text-stone-600 dark:text-stone-500 dark:hover:text-white transition-all flex-shrink-0"
+                      className="w-8 h-8 flex items-center justify-center text-stone-400 hover:text-stone-600 dark:text-stone-500 dark:hover:text-white transition-all flex-shrink-0 xs-input-hide"
                       title="Record Voice Note">
                       <Mic size={18} />
                     </button>
@@ -1623,7 +1665,7 @@ export default function App() {
 
           {/* Column 4: Right Profile & Shared Archive Side-Panel */}
           {selectedThreadId && otherUser && (
-            <div className="mobile-hide flex-shrink-0">
+            <div className="mobile-hide laptop-hide flex-shrink-0">
               <ProfileSidebar 
                 threadId={selectedThreadId} 
                 currentUser={currentUser} 
@@ -2125,6 +2167,78 @@ export default function App() {
             <span className="truncate w-full text-center">Settings</span>
           </button>
         </nav>
+      )}
+
+      {/* Connection Info Drawer Modal Overlay for Mobile */}
+      {showProfileSidebarModal && selectedThreadId && otherUser && (
+        <div className="fixed inset-0 z-50 flex justify-end bg-black/60 backdrop-blur-sm animate-fade-in" onClick={() => setShowProfileSidebarModal(false)}>
+          <div 
+            className="w-full max-w-[300px] h-full bg-[var(--bg-card)] border-l flex flex-col shadow-2xl animate-slide-in relative"
+            style={{ borderColor: 'var(--border)' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Drawer Header */}
+            <div className="h-16 px-6 border-b flex items-center justify-between flex-shrink-0" style={{ borderColor: 'var(--border)' }}>
+              <span className="font-bold text-sm text-[var(--text-primary)]">Information</span>
+              <button 
+                onClick={() => setShowProfileSidebarModal(false)}
+                className="w-8 h-8 rounded-full flex items-center justify-center text-stone-550 hover:bg-[var(--bg-elevated)] transition-all cursor-pointer"
+              >
+                <X size={18} />
+              </button>
+            </div>
+            {/* Drawer Content */}
+            <div className="flex-1 overflow-y-auto">
+              <ProfileSidebar 
+                threadId={selectedThreadId} 
+                currentUser={currentUser} 
+                otherUser={otherUser}
+                onReportClick={() => {
+                  setShowProfileSidebarModal(false);
+                  setShowReportModal(true);
+                }}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Media Preview Lightbox Modal Overlay */}
+      {previewMedia && (
+        <div 
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 backdrop-blur-md animate-fade-in p-4"
+          onClick={() => setPreviewMedia(null)}
+        >
+          {/* Close button in top-right */}
+          <button 
+            onClick={() => setPreviewMedia(null)}
+            className="absolute top-4 right-4 w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors cursor-pointer z-[110]"
+            title="Close preview"
+          >
+            <X size={20} />
+          </button>
+
+          {/* Media Container */}
+          <div 
+            className="relative max-w-full max-h-[85vh] flex items-center justify-center"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {previewMedia.type === 'image' ? (
+              <img 
+                src={previewMedia.url} 
+                alt="Enlarged view" 
+                className="max-w-full max-h-[85vh] object-contain rounded-xl shadow-2xl animate-scale-in" 
+              />
+            ) : (
+              <video 
+                src={previewMedia.url} 
+                controls 
+                autoPlay 
+                className="max-w-full max-h-[85vh] object-contain rounded-xl shadow-2xl animate-scale-in" 
+              />
+            )}
+          </div>
+        </div>
       )}
       </div>
     </div>

@@ -68,8 +68,9 @@ export class ChatController {
         logger.warn('Could not verify target user role, allowing thread creation:', lookupErr);
       }
 
+      const { topic } = req.body;
       const participants = [firebaseUid, targetUserId];
-      const thread = await ChatService.getOrCreateThread(participants, 'direct');
+      const thread = await ChatService.getOrCreateThread(participants, 'direct', undefined, topic);
       res.status(200).json(thread);
     } catch (error: any) {
       logger.error('Error in getOrCreateThread:', error);

@@ -9,6 +9,7 @@ export default defineConfig({
       usePolling: true,
       interval: 100,
     },
+    // allowedHosts: ['unruffled-cassette-crusader.ngrok-free.dev'],
   },
 })
 

@@ -3,11 +3,13 @@ import { resolveMediaUrl } from '../api';
 
 interface UserProfileModalProps {
   userId: string;
+  currentUserId?: string;
   onClose: () => void;
   onStartChat?: (otherUserId: string) => void;
 }
 
-export default function UserProfileModal({ userId, onClose, onStartChat }: UserProfileModalProps) {
+export default function UserProfileModal({ userId, currentUserId, onClose, onStartChat }: UserProfileModalProps) {
+  const isSelf = userId === currentUserId;
   // Load users directory to find profile details
   const usersJson = sessionStorage.getItem('users_list');
   const dynamicUsers: any[] = usersJson ? JSON.parse(usersJson) : [];
@@ -72,9 +74,11 @@ export default function UserProfileModal({ userId, onClose, onStartChat }: UserP
           <h3 className="text-lg font-bold text-stone-850 dark:text-white">{user.name}</h3>
           
           <div className="flex items-center gap-2 mt-1">
-            <span className="text-[10px] uppercase font-bold tracking-widest px-2.5 py-0.5 rounded bg-red-105/10 text-red-500 border border-red-500/20" style={{ color: 'var(--primary)' }}>
-              {user.role || 'Member'}
-            </span>
+            {!isSelf && user.role && (
+              <span className="text-[10px] uppercase font-bold tracking-widest px-2.5 py-0.5 rounded bg-red-105/10 text-red-500 border border-red-500/20" style={{ color: 'var(--primary)' }}>
+                {user.role}
+              </span>
+            )}
             {user.community && (
               <span className="text-[10px] text-stone-400 border border-stone-800 px-2 py-0.5 rounded-md bg-[var(--bg-elevated)]">
                 {user.community}

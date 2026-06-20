@@ -13,13 +13,6 @@ interface HomeDashboardProps {
   onShowNotifications?: () => void;
 }
 
-const MEMOIR_PROMPTS = [
-  "Tell us about a time when you felt completely at home. Was it a typical place, or a person you were with?",
-  "What is the most valuable traditional wisdom your parents or grandparents passed down to you?",
-  "Share a story of a major community event or ceremony that you participated in during your youth.",
-  "Describe a traditional recipe or meal that represents your heritage, and the memories associated with it.",
-  "What was the first technology or modern invention you remember seeing, and how did it change your community?",
-];
 
 // Helper to resolve user initials & colors dynamically
 function getUserAvatarDetails(userId: string, userName: string) {
@@ -43,7 +36,6 @@ function getUserAvatarDetails(userId: string, userName: string) {
 }
 
 export default function HomeDashboard({ currentUser, token, onNavigate, onPlayStory, onViewProfile, onShowNotifications }: HomeDashboardProps) {
-  const [promptIndex, setPromptIndex] = useState(0);
   const [loading, setLoading] = useState(true);
   const [feedItems, setFeedItems] = useState<any[]>([]);
   const [error, setError] = useState('');
@@ -229,22 +221,15 @@ export default function HomeDashboard({ currentUser, token, onNavigate, onPlaySt
     }
   };
 
-  const handleNextPrompt = () => {
-    setPromptIndex((prev) => (prev + 1) % MEMOIR_PROMPTS.length);
-  };
-
-  const handlePrevPrompt = () => {
-    setPromptIndex((prev) => (prev - 1 + MEMOIR_PROMPTS.length) % MEMOIR_PROMPTS.length);
-  };
 
   return (
     <div className="flex-1 overflow-y-auto bg-[var(--bg-dark)]">
       
       {/* Centered timeline container matching Instagram/Facebook layout */}
-      <div className="max-w-2xl mx-auto px-4 py-8 space-y-8 pb-24">
+      <div className="max-w-2xl mx-auto px-2 xs:px-4 py-4 xs:py-8 space-y-4 xs:space-y-8 pb-24">
         
         {/* Welcome Hero Banner */}
-        <header className="relative p-6 rounded-3xl overflow-hidden glass border border-white/5 flex flex-col justify-between shadow-lg">
+        <header className="relative p-4 xs:p-6 rounded-2xl xs:rounded-3xl overflow-hidden glass border border-white/5 flex flex-col justify-between shadow-lg">
           <div className="absolute top-1/2 right-10 -translate-y-1/2 w-80 h-80 rounded-full opacity-5 blur-[100px] pointer-events-none"
                style={{ background: 'var(--primary)' }} />
           
@@ -253,18 +238,8 @@ export default function HomeDashboard({ currentUser, token, onNavigate, onPlaySt
               <span className="text-[9px] uppercase font-bold tracking-widest text-red-500 font-sans" style={{ color: 'var(--primary)' }}>
                 Welcome back,
               </span>
-              <h2 className="text-2xl font-black font-serif tracking-tight">{currentUser.name}</h2>
+              <h2 className="text-xl xs:text-2xl font-black font-serif tracking-tight">{currentUser.name}</h2>
             </div>
-            {/* Notification Bell Icon */}
-            <button 
-              onClick={() => onShowNotifications?.()}
-              className="relative p-2 rounded-xl border bg-[var(--bg-elevated)] hover:bg-[var(--bg-card)] hover:scale-105 active:scale-95 transition-all text-[var(--text-secondary)] hover:text-[var(--text-primary)] shadow-sm cursor-pointer"
-              style={{ borderColor: 'var(--border)' }}
-              title="Notifications"
-            >
-              <Bell size={18} />
-              <span className="absolute top-1 right-1 w-2.5 h-2.5 rounded-full bg-red-500 border border-white dark:border-stone-900 animate-pulse" />
-            </button>
           </div>
           <div className="relative z-10 mt-1">
             <p className="text-xs max-w-lg leading-relaxed text-stone-405" style={{ color: 'var(--text-secondary)' }}>
@@ -313,42 +288,9 @@ export default function HomeDashboard({ currentUser, token, onNavigate, onPlaySt
           </div>
         </header>
 
-        {/* Storytelling Prompt Card */}
-        <section className="p-5 rounded-3xl bg-[var(--bg-card)] border border-opacity-5 relative shadow-sm"
-                 style={{ borderColor: 'var(--border)' }}>
-          <div className="flex items-center justify-between border-b pb-3 mb-3" style={{ borderColor: 'var(--border)' }}>
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-xl flex items-center justify-center bg-red-101/10 text-red-500" style={{ color: 'var(--primary)' }}>
-                <Award size={16} />
-              </div>
-              <div>
-                <h3 className="text-xs font-bold text-stone-700 dark:text-stone-300">Storytelling Prompt</h3>
-                <p className="text-[9px] text-stone-600 dark:text-stone-500">spark an oral history memoir session</p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <button onClick={handlePrevPrompt} className="p-1 rounded-lg border hover:bg-white/5" style={{ borderColor: 'var(--border)' }}>
-                <ChevronLeft size={12} />
-              </button>
-              <span className="text-[10px] font-mono font-bold text-stone-600 dark:text-stone-400">
-                {promptIndex + 1} / {MEMOIR_PROMPTS.length}
-              </span>
-              <button onClick={handleNextPrompt} className="p-1 rounded-lg border hover:bg-white/5" style={{ borderColor: 'var(--border)' }}>
-                <ChevronRight size={12} />
-              </button>
-            </div>
-          </div>
-
-          <div className="py-2.5 px-4 bg-[var(--bg-elevated)] rounded-2xl border" style={{ borderColor: 'var(--border)' }}>
-            <p className="text-xs font-medium italic leading-relaxed text-stone-700 dark:text-stone-300 text-center font-serif py-1">
-              "{MEMOIR_PROMPTS[promptIndex]}"
-            </p>
-          </div>
-        </section>
 
         {/* Dynamic Post Creator Box */}
-        <div className="bg-[var(--bg-card)] border rounded-3xl p-5 shadow-sm space-y-4" style={{ borderColor: 'var(--border)' }}>
+        <div className="bg-[var(--bg-card)] border rounded-2xl xs:rounded-3xl p-3 xs:p-5 shadow-sm space-y-4" style={{ borderColor: 'var(--border)' }}>
           <div className="flex items-center gap-3">
             {(() => {
               const details = getUserAvatarDetails(currentUser.id, currentUser.name);

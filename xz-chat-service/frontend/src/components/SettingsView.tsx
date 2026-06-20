@@ -260,14 +260,6 @@ export default function SettingsView({ currentUser, onProfileUpdate, onLogout }:
                         <><Camera size={13} /><span>Upload Photo</span></>
                       )}
                     </button>
-                    <input 
-                      type="text"
-                      placeholder="Or paste any image URL..."
-                      value={avatar}
-                      onChange={(e) => setAvatar(e.target.value)}
-                      className="px-3 py-1.5 rounded-lg border outline-none text-xs bg-[var(--bg-elevated)] w-full"
-                      style={{ borderColor: 'var(--border)', color: 'var(--text-primary)' }}
-                    />
                   </div>
                 </div>
 

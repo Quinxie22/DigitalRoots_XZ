@@ -107,6 +107,7 @@ export default function Sidebar({ currentUser, selectedThreadId, onSelectThread,
   const [threads, setThreads]       = useState<Thread[]>([]);
   const [search, setSearch]         = useState('');
   const [loading, setLoading]       = useState(true);
+  const [newTopic, setNewTopic]     = useState('');
 
   const load = useCallback(async () => {
     try {
@@ -154,8 +155,9 @@ export default function Sidebar({ currentUser, selectedThreadId, onSelectThread,
 
   const startNewChat = async (targetId: string) => {
     try {
-      const thread = await getOrCreateThread(currentUser.id, targetId);
+      const thread = await getOrCreateThread(currentUser.id, targetId, newTopic);
       setShowNewChat(false);
+      setNewTopic('');
       await load();
       onSelectThread(thread.threadId);
     } catch (e) {
@@ -203,7 +205,23 @@ export default function Sidebar({ currentUser, selectedThreadId, onSelectThread,
       {showNewChat && (
         <div className="p-3 animate-fade-in" style={{ borderBottom: '1px solid var(--border)', background: 'var(--bg-elevated)' }}>
           <p className="text-xs font-semibold mb-2" style={{ color: 'var(--text-muted)' }}>START A CONVERSATION</p>
-          {(() => {
+          <div className="mb-3">
+            <label className="text-[10px] uppercase font-bold text-stone-500 dark:text-stone-400 block mb-1">Discussion Topic (Optional)</label>
+            <input 
+              type="text" 
+              placeholder="e.g. History session, recipes..." 
+              value={newTopic} 
+              onChange={(e) => setNewTopic(e.target.value)}
+              className="w-full px-3 py-2 text-xs rounded-xl border outline-none"
+              style={{
+                background: 'var(--bg-card)',
+                borderColor: 'var(--border)',
+                color: 'var(--text-primary)',
+              }}
+            />
+          </div>
+          <div className="space-y-1">
+            {(() => {
             const usersJson = sessionStorage.getItem('users_list');
             const list: any[] = usersJson ? JSON.parse(usersJson) : [];
             const mapped = list.map((u: any) => getUserInfo(u._id || u.id));
@@ -231,6 +249,7 @@ export default function Sidebar({ currentUser, selectedThreadId, onSelectThread,
               </button>
             ));
           })()}
+          </div>
         </div>
       )}
 
@@ -350,19 +369,23 @@ export default function Sidebar({ currentUser, selectedThreadId, onSelectThread,
       </div>
 
       {/* Current User Footer */}
-      <div className="p-3 flex items-center gap-3 cursor-pointer hover:bg-black/5 dark:hover:bg-white/5 rounded-xl m-2 transition-colors"
+      <div className="p-3 flex items-center gap-3 cursor-pointer hover:bg-black/5 dark:hover:bg-white/5 rounded-xl m-2 transition-colors md:hidden"
            style={{ borderTop: '1px solid var(--border)' }}
            onClick={() => onViewProfile?.(currentUser.id)}>
-        <div className={`w-8 h-8 rounded-xl flex items-center justify-center text-xs font-bold text-white flex-shrink-0 bg-gradient-to-br overflow-hidden ${myInfo.color}`}>
-          {myInfo.avatar && (myInfo.avatar.startsWith('http') || myInfo.avatar.startsWith('/') || myInfo.avatar.includes('.')) ? (
-            <img src={resolveMediaUrl(myInfo.avatar)} alt={myInfo.name} className="w-full h-full object-cover" />
-          ) : (
-            myInfo.initials
-          )}
+        <div className="relative flex-shrink-0">
+          <div className={`w-8 h-8 rounded-xl flex items-center justify-center text-xs font-bold text-white flex-shrink-0 bg-gradient-to-br overflow-hidden ${myInfo.color}`}>
+            {myInfo.avatar && (myInfo.avatar.startsWith('http') || myInfo.avatar.startsWith('/') || myInfo.avatar.includes('.')) ? (
+              <img src={resolveMediaUrl(myInfo.avatar)} alt={myInfo.name} className="w-full h-full object-cover" />
+            ) : (
+              myInfo.initials
+            )}
+          </div>
+          {/* Online green dot indicator for self */}
+          <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border bg-[var(--online)]"
+                style={{ borderColor: 'var(--bg-card)' }} />
         </div>
-        <div className="flex-1 min-w-0">
+        <div className="flex-grow min-w-0">
           <p className="text-sm font-semibold truncate" style={{ color: 'var(--text-primary)' }}>{myInfo.name}</p>
-          <p className="text-xs" style={{ color: 'var(--online)' }}>● Online</p>
         </div>
       </div>
     </aside>

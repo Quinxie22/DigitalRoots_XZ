@@ -37,7 +37,7 @@ const ThreadSchema = new Schema<IThread>(
     threadType: { type: String, enum: ['direct', 'group'], default: 'direct' },
     threadName: { type: String, default: '' },
     threadAvatar: { type: String, default: '' },
-    discussionTopic: { type: String, default: 'The first road trip across the coast, 1958' },
+    discussionTopic: { type: String, default: '' },
     isRecording: { type: Boolean, default: false },
     activeCall: {
       hostId: { type: String },

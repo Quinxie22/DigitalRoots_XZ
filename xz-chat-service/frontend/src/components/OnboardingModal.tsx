@@ -106,7 +106,7 @@ export default function OnboardingModal({ currentUser, token, onComplete }: Onbo
               rows={2}
               required
               placeholder="e.g. Storyteller sharing regional folklore and history..."
-              className="px-4 py-2.5 rounded-xl border outline-none text-xs bg-[var(--bg-elevated)] w-full resize-none text-white"
+              className="px-4 py-2.5 rounded-xl border outline-none text-xs bg-[var(--bg-elevated)] w-full resize-none text-stone-850 dark:text-white"
               style={{ borderColor: 'var(--border)' }}
             />
           </div>
@@ -119,7 +119,7 @@ export default function OnboardingModal({ currentUser, token, onComplete }: Onbo
               onChange={(e) => setCommunity(e.target.value)}
               required
               placeholder="e.g. Sawa community, Coastal origin..."
-              className="px-4 py-2.5 rounded-xl border outline-none text-xs bg-[var(--bg-elevated)] w-full text-white"
+              className="px-4 py-2.5 rounded-xl border outline-none text-xs bg-[var(--bg-elevated)] w-full text-stone-850 dark:text-white"
               style={{ borderColor: 'var(--border)' }}
             />
           </div>

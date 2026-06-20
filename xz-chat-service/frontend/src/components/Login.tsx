@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import type { User } from '../types';
 import { Loader, Mail, Lock, User as UserIcon, ArrowRight } from 'lucide-react';
 
@@ -13,9 +13,22 @@ export default function Login({ onLogin }: LoginProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
-  const [role, setRole] = useState('Elder'); // Maps 'Senior' to 'Elder'
+  const [role, setRole] = useState('Elder');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    document.documentElement.classList.add('auth-layout');
+    document.body.classList.add('auth-layout');
+    const rootEl = document.getElementById('root');
+    if (rootEl) rootEl.classList.add('auth-layout');
+
+    return () => {
+      document.documentElement.classList.remove('auth-layout');
+      document.body.classList.remove('auth-layout');
+      if (rootEl) rootEl.classList.remove('auth-layout');
+    };
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -23,8 +36,8 @@ export default function Login({ onLogin }: LoginProps) {
     setLoading(true);
 
     const endpoint = isRegister ? '/api/users/register' : '/api/users/login';
-    const payload = isRegister 
-      ? { email, password, name, role } 
+    const payload = isRegister
+      ? { email, password, name, role }
       : { email, password };
 
     try {
@@ -42,10 +55,7 @@ export default function Login({ onLogin }: LoginProps) {
         throw new Error(data.message || 'Authentication failed');
       }
 
-      // Store JWT in sessionStorage (transient session storage)
       sessionStorage.setItem('token', data.token);
-      
-      // Notify parent app of successful login
       onLogin(data.user);
     } catch (err: any) {
       setError(err.message || 'Connection error. Please try again.');
@@ -55,13 +65,13 @@ export default function Login({ onLogin }: LoginProps) {
   };
 
   return (
-    <div className="min-h-screen w-full flex flex-col md:flex-row overflow-hidden bg-[var(--bg-dark)] font-sans">
-      
-      {/* LEFT SECTION: BRANDING (Premium Sleek Dark Panel) */}
-      <div className="w-full md:w-[45%] bg-gradient-to-b from-[#101016] to-[#09090d] border-r border-[#1a1a24] text-white flex flex-col justify-between p-8 md:p-12 relative overflow-hidden select-none">
+    <div className="min-h-screen w-full flex flex-col md:flex-row bg-[var(--bg-dark)] font-sans">
+
+      {/* LEFT SECTION: BRANDING */}
+      <div className="hidden md:flex md:w-[45%] bg-gradient-to-b from-[#101016] to-[#09090d] border-r border-[#1a1a24] text-white flex-col justify-between p-6 md:p-12 relative overflow-hidden select-none">
         {/* Glow decoration */}
         <div className="absolute -top-12 -left-12 w-64 h-64 rounded-full opacity-10 bg-red-500 blur-3xl pointer-events-none" />
-        
+
         {/* Logo */}
         <div className="flex items-center gap-3 relative z-10">
           <svg className="w-9 h-9 flex-shrink-0 shadow-lg" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -81,7 +91,7 @@ export default function Login({ onLogin }: LoginProps) {
         </div>
 
         {/* Catchphrase */}
-        <div className="my-auto py-12 space-y-6 relative z-10 max-w-sm">
+        <div className="my-auto py-6 md:py-12 space-y-6 relative z-10 max-w-sm">
           <h1 className="text-3xl md:text-4xl font-extrabold font-serif leading-tight">
             Passing on <span className="underline decoration-red-500 decoration-wavy">Knowledge</span>, nurturing the bond.
           </h1>
@@ -103,16 +113,16 @@ export default function Login({ onLogin }: LoginProps) {
       </div>
 
       {/* RIGHT SECTION: FORM CARD */}
-      <div className="w-full md:w-[55%] flex items-center justify-center p-6 md:p-12 bg-[#FAF8F6] dark:bg-[#0a0a0f]">
-        <div className="max-w-md w-full p-8 bg-white dark:bg-[#111118] border border-stone-200 dark:border-stone-800 rounded-3xl shadow-xl space-y-6 animate-fade-in relative z-10">
-          
+      <div className="w-full md:w-[55%] flex items-center justify-center p-2.5 xs:p-4 py-8 md:p-12 bg-[#FAF8F6] dark:bg-[#0a0a0f] md:min-h-screen">
+        <div className="max-w-md w-full p-4 xs:p-6 md:p-8 bg-white dark:bg-[#111118] border border-stone-200 dark:border-stone-800 rounded-3xl shadow-xl space-y-5 xs:space-y-6 animate-fade-in relative z-10">
+
           <div className="space-y-1.5">
             <h2 className="text-2xl font-bold font-serif text-stone-850 dark:text-white">
               {isRegister ? 'Join Digital Roots' : 'Welcome Back'}
             </h2>
             <p className="text-xs text-stone-400">
-              {isRegister 
-                ? 'Bridge generational wisdom and document history' 
+              {isRegister
+                ? 'Bridge generational wisdom and document history'
                 : 'Continue your intergenerational journey.'}
             </p>
           </div>
@@ -124,8 +134,7 @@ export default function Login({ onLogin }: LoginProps) {
           )}
 
           <form onSubmit={handleSubmit} className="space-y-5">
-            
-            {/* Identity Toggles (Figma choice: Senior vs Youth) */}
+
             {isRegister && (
               <div className="space-y-2 text-left">
                 <label className="text-[10px] uppercase font-extrabold tracking-wider text-stone-450">
@@ -135,11 +144,10 @@ export default function Login({ onLogin }: LoginProps) {
                   <button
                     type="button"
                     onClick={() => setRole('Elder')}
-                    className={`flex-1 flex flex-col items-center justify-center py-2.5 rounded-xl border transition-all ${
-                      role === 'Elder' 
-                        ? 'bg-red-50/10 text-red-500 border-red-500/30 font-bold' 
+                    className={`flex-1 flex flex-col items-center justify-center py-2.5 rounded-xl border transition-all ${role === 'Elder'
+                        ? 'bg-red-50/10 text-red-500 border-red-500/30 font-bold'
                         : 'bg-transparent text-stone-400 border-stone-200 dark:border-stone-800'
-                    }`}
+                      }`}
                     style={{ borderColor: role === 'Elder' ? 'var(--primary)' : undefined }}
                   >
                     <span className="text-xs">Senior</span>
@@ -147,11 +155,10 @@ export default function Login({ onLogin }: LoginProps) {
                   <button
                     type="button"
                     onClick={() => setRole('Youth')}
-                    className={`flex-1 flex flex-col items-center justify-center py-2.5 rounded-xl border transition-all ${
-                      role === 'Youth' 
-                        ? 'bg-red-50/10 text-red-500 border-red-500/30 font-bold' 
+                    className={`flex-1 flex flex-col items-center justify-center py-2.5 rounded-xl border transition-all ${role === 'Youth'
+                        ? 'bg-red-50/10 text-red-500 border-red-500/30 font-bold'
                         : 'bg-transparent text-stone-400 border-stone-200 dark:border-stone-800'
-                    }`}
+                      }`}
                     style={{ borderColor: role === 'Youth' ? 'var(--primary)' : undefined }}
                   >
                     <span className="text-xs">Youth</span>
@@ -175,7 +182,7 @@ export default function Login({ onLogin }: LoginProps) {
                     placeholder="e.g. Arthur Miller"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2.5 text-xs rounded-xl outline-none border transition-all dark:bg-[#1a1a24] text-stone-800 dark:text-white dark:border-stone-800"
+                    className="w-full pl-10 pr-4 py-2.5 text-xs rounded-xl outline-none border transition-all dark:bg-[#1a1a24] text-stone-800 dark:text-white dark:border-stone-800 focus:border-red-500/50"
                   />
                 </div>
               </div>
@@ -195,7 +202,7 @@ export default function Login({ onLogin }: LoginProps) {
                   placeholder="name@archive.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2.5 text-xs rounded-xl outline-none border transition-all dark:bg-[#1a1a24] text-stone-800 dark:text-white dark:border-stone-800"
+                  className="w-full pl-10 pr-4 py-2.5 text-xs rounded-xl outline-none border transition-all dark:bg-[#1a1a24] text-stone-800 dark:text-white dark:border-stone-800 focus:border-red-500/50"
                 />
               </div>
             </div>
@@ -221,17 +228,16 @@ export default function Login({ onLogin }: LoginProps) {
                   placeholder="••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2.5 text-xs rounded-xl outline-none border transition-all dark:bg-[#1a1a24] text-stone-800 dark:text-white dark:border-stone-800"
+                  className="w-full pl-10 pr-4 py-2.5 text-xs rounded-xl outline-none border transition-all dark:bg-[#1a1a24] text-stone-800 dark:text-white dark:border-stone-800 focus:border-red-500/50"
                 />
               </div>
             </div>
 
-            {/* Submit Action Button */}
             <button
               type="submit"
               disabled={loading}
               className="w-full py-3 rounded-xl text-white font-bold text-xs transition-all hover:opacity-95 active:scale-[0.98] shadow-md flex items-center justify-center gap-1.5 cursor-pointer mt-6"
-              style={{ 
+              style={{
                 background: 'var(--primary)'
               }}
             >
@@ -249,7 +255,6 @@ export default function Login({ onLogin }: LoginProps) {
             </button>
           </form>
 
-          {/* Toggle link */}
           <div className="text-center pt-2">
             <button
               onClick={() => {
@@ -258,8 +263,8 @@ export default function Login({ onLogin }: LoginProps) {
               }}
               className="text-xs transition-colors hover:underline text-stone-550 dark:text-stone-450"
             >
-              {isRegister 
-                ? 'Already have an account? Sign In' 
+              {isRegister
+                ? 'Already have an account? Sign In'
                 : 'New to our community? Create an account'}
             </button>
           </div>
