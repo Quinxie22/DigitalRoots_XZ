@@ -479,7 +479,34 @@ To push your local monorepo to your GitHub account:
    git push -u origin main
    ```
 
+### Handling Non-Fast-Forward Push Rejections (Unrelated Histories Conflict)
+> [!TIP]
+> **What to do if Git rejects your push with a `non-fast-forward` error?**
+>
+> If you initialized your GitHub repository with a default `README.md` or `.gitignore` file online, the remote branch will contain a commit history that does not exist in your local Git history. When you try to push, Git will block it with this error:
+> ```text
+>  ! [rejected]        main -> main (non-fast-forward)
+> error: failed to push some refs to 'https://github.com/Quinxie22/DigitalRoots_XZ.git'
+> ```
+
+To resolve this conflict safely and merge the histories:
+
+1. **Fetch the latest remote metadata**:
+   ```bash
+   git fetch origin
+   ```
+2. **Pull the remote commits and allow unrelated histories**:
+   Tell Git to merge the independent histories together. This will fetch the remote `README.md` and merge it into your local directory:
+   ```bash
+   git pull origin main --allow-unrelated-histories --no-edit
+   ```
+3. **Push the combined histories to GitHub**:
+   ```bash
+   git push -u origin main
+   ```
+
 ---
+
 
 ## 12. Production Deployment on AWS (Single-Host Containerization)
 
