@@ -16,6 +16,83 @@ Bridging generational gap app
 
 ## 1) xz-chat-service (Express + Socket.io)
 
+---
+
+## Chat & Calls: How two users communicate (HTTP + Socket.io + WebRTC)
+
+### A) How two users send chat messages
+1. **Frontend → backend (HTTP)**
+   - The user sends a message using:
+     - `POST /api/chat/threads/:threadId/messages`
+   - Frontend function: `xz-chat-service/frontend/src/api.ts -> sendTextMessage()`
+   - Technology: **Express** route + **MongoDB** message creation.
+
+2. **Backend → all recipients (Socket.io)**
+   - After the message is created, the backend emits a realtime event:
+     - Socket event: `new-message`
+     - Target room: `thread:${threadId}`
+   - Backend code:
+     - `xz-chat-service/src/controllers/chat.controller.ts -> deliverAndEmitMessage()`
+   - Technology: **Socket.io rooms**.
+
+3. **Online vs offline delivery / notifications**
+   - For recipients who are currently connected, message delivery is tracked in the message document.
+   - For recipients who are offline, a notification is created by calling the notification microservice.
+   - Effect:
+     - Online users see the message instantly.
+     - Offline users receive a notification entry that the notification service will relay later.
+
+### B) How “typing indicators” work
+- Frontend emits typing through Socket.io.
+- Server listens on:
+  - `typing-start`, `typing-stop`
+- Server broadcasts to the thread room:
+  - `user-typing`, `user-stopped-typing`
+- Backend: `xz-chat-service/src/sockets/message.handlers.ts`
+
+### C) Are calls made with Jitsi or WebRTC?
+- **This project uses WebRTC signaling via Socket.io**.
+- There is **no Jitsi integration** in the backend socket handlers.
+- WebRTC happens **between browsers** (peer-to-peer media).
+
+#### Real role of the Chat Service in video/audio calls
+Chat service does **not** transmit the actual audio/video media streams.
+It only provides the signaling channel and call-state synchronization.
+
+#### What WebRTC messages are relayed
+The chat socket handler relays these signaling events to the target user’s socket room:
+- `webrtc-offer` → forwarded to `user:${targetUserId}`
+- `webrtc-answer` → forwarded to `user:${targetUserId}`
+- `webrtc-candidate` → forwarded to `user:${targetUserId}`
+
+These three events are the standard WebRTC handshake pieces:
+- Offer/Answer: exchange SDP session descriptions.
+- ICE candidates: exchange connectivity/network traversal info.
+
+#### How users “join the call” (room management)
+- Frontend calls:
+  - `join-call` with `{ threadId }`
+- Backend behavior:
+  - `socket.join('call:${threadId}')`
+- Then other events are broadcast in that call room:
+  - `toggle-audio` → `user-audio-toggled`
+  - `toggle-video` → `user-video-toggled`
+  - `toggle-recording` → `recording-toggled`
+  - `send-caption` → `new-caption`
+  - `end-call-session` → `call-ended`
+
+#### Real meaning: “Call” vs “Video call”
+- The signaling and state sync supports both **audio-only** and **video**:
+  - Audio is controlled by `toggle-audio` (mute/unmute).
+  - Video is controlled by `toggle-video` (camera on/off).
+- The presence of these toggles means the call can be used for:
+  - voice calls
+  - video calls
+  - also live captions
+
+---
+
+
 ### Tech used
 - **Express**: REST controllers & routes.
 - **Socket.io**: persistent real-time events (messages, typing indicators, presence, call signaling).
