@@ -13,7 +13,7 @@
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3004';
 
 function authHeaders(token: string) {
-  const realToken = sessionStorage.getItem('token') || token;
+  const realToken = sessionStorage.getItem('token') || localStorage.getItem('token') || token;
   return {
     'Content-Type': 'application/json',
     Authorization: `Bearer ${realToken}`,
@@ -82,7 +82,7 @@ export async function uploadFile(token: string, threadId: string, file: File) {
   formData.append('file', file);
   const res = await fetch(`${BACKEND_URL}/api/chat/threads/${threadId}/upload`, {
     method: 'POST',
-    headers: { Authorization: `Bearer ${sessionStorage.getItem('token') || token}` }, // no Content-Type — browser sets it for FormData
+    headers: { Authorization: `Bearer ${sessionStorage.getItem('token') || localStorage.getItem('token') || token}` }, // no Content-Type — browser sets it for FormData
     body: formData,
   });
   if (!res.ok) throw new Error(`uploadFile failed: ${res.status}`);
@@ -94,7 +94,7 @@ export async function uploadGenericFile(token: string, file: File): Promise<{ ur
   formData.append('file', file);
   const res = await fetch(`${BACKEND_URL}/api/chat/upload`, {
     method: 'POST',
-    headers: { Authorization: `Bearer ${sessionStorage.getItem('token') || token}` },
+    headers: { Authorization: `Bearer ${sessionStorage.getItem('token') || localStorage.getItem('token') || token}` },
     body: formData,
   });
   if (!res.ok) throw new Error(`uploadGenericFile failed: ${res.status}`);
@@ -118,7 +118,7 @@ export async function sendVoiceNote(token: string, threadId: string, audioBlob: 
   formData.append('duration', duration.toString());
   const res = await fetch(`${BACKEND_URL}/api/chat/threads/${threadId}/voice`, {
     method: 'POST',
-    headers: { Authorization: `Bearer ${sessionStorage.getItem('token') || token}` },
+    headers: { Authorization: `Bearer ${sessionStorage.getItem('token') || localStorage.getItem('token') || token}` },
     body: formData,
   });
   if (!res.ok) throw new Error(`sendVoiceNote failed: ${res.status}`);
@@ -155,7 +155,7 @@ const NOTIFICATION_SERVICE_URL = import.meta.env.VITE_NOTIFICATION_SERVICE_URL |
 export async function deleteNotification(token: string, notificationId: string): Promise<void> {
   const res = await fetch(`${NOTIFICATION_SERVICE_URL}/api/notifications/${notificationId}`, {
     method: 'DELETE',
-    headers: { Authorization: `Bearer ${sessionStorage.getItem('token') || token}` },
+    headers: { Authorization: `Bearer ${sessionStorage.getItem('token') || localStorage.getItem('token') || token}` },
   });
   if (!res.ok) throw new Error(`deleteNotification failed: ${res.status}`);
 }

@@ -1,0 +1,162 @@
+services:
+  # ── DATABASES ───────────────────────────────────────────────────────────────
+  mongodb:
+    image: mongo:latest
+    container_name: xz-mongodb
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - xz-network
+
+  redis:
+    image: redis:alpine
+    container_name: xz-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - xz-network
+
+  # ── BACKEND SERVICES ────────────────────────────────────────────────────────
+  xz-user-service:
+    build: ./xz-user-service
+    container_name: xz-user-service
+    environment:
+      - PORT=3006
+      - MONGODB_URI=mongodb://mongodb:27017
+      - MONGODB_DB=xz_users
+      - JWT_SECRET=xz_jwt_secret_shared_2026_key
+      - FIREBASE_PROJECT_ID=xz-digital-roots-project
+      - FIREBASE_CLIENT_EMAIL=firebase-adminsdk-fbsvc@xz-digital-roots-project.iam.gserviceaccount.com
+      - FIREBASE_PRIVATE_KEY=-----BEGIN PRIVATE KEY-----\nMIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQDGgISO3L5Ow4zl\nAwHH5hPgRrydavCiX2gJyqgjkqIBDYk05RzXJZDglITtQFNm5xP0UFEv5FEEJEOP\ntMA633LkFoMZ7lJrTNstFtlxjuHVTy1oUw/4Fk4N3BKomSiqIZZ62sUvG8sljDMR\nKHHfpHF/eqP1ZJ6ucdQhe2zzWuvJtowZixQ6uvAc1F3Mk4rP3hoknc0bU9tlWybK\nIfkDPfzzHfKxhBfdwOk5m3tf/TDvAhoc8U6w1uzOwPzWK2yjWWk+aAbmJA6RUmYl\n44vIL3YnFuvi1wrt5/yUh5sGKK16J04eIjOaaB3wjZw7435pFqNOhAVw4sd6BR+6\n5WEvtiFHAgMBAAECggEATte0DwRpiGJOf5XKqsndYirmdsYHjw7DBYSbdQmkVDO6\nqCpKYsAWg8Up6QwwNEKbH+KY5KNUdIcs2JLr+VZQTX0NlIqe7OSJd6bINj0QwQdi\nWzoGsTy2wvWC6blvt+eAXAqx4EyzSxYdIHcGh9RKil49alYNWu92WNgrxZr65VJr\nvXomAyHyKCTpMBW1g+WMMeoBlJ4HbGLXUsioP6kKI6L4aYPCxKKM7RD8tt5jdoGa\nFmQgPzPPCFbOhhI4rracdLmMgezMnb8pAqG5XURfnx+EQAq7nX4/gLMZ1qVxjVWo\nOyaSBxYJ2hTGDOINLSE4B8zepCNZXUGz/49NsdfXZQKBgQDnvDGRiLnha+iCeONP\nU0B7JyFw8IV5+Z0Muw4kqaDyPrMgTZQtD+c5pdqJhFFoHobvw401dMZjrl12tjXv\naDuh2br0ovKFMOqYygr2+Q8b01TsVcUS7Nz/05cW5GliqubtSF4QBQTKrEpSvdTR\nHi9iIbBScIFFHjKcd0YFAKda2wKBgQDbSX1fYF9PPBwn/N/UuApvbis5eC8Rtk5Z\nVqiuV08u4TF2AQ7ogPrWdkuBv/I8goV+6sitBCT4PI/FbnTZkt4jLStgAqLUvSIk\nHKqH3efMytWAZM/2UfQi+fbrCK5SFZ77Ua8t/zKvERPMoW0xIjk1tS9VduDXx/fQ\nHTroJMuBBQKBgErhc/77+FyQGuS2HXWPiEGDRnoRLoBYmVf4xbwxF/HPMuCYUO4y\nulvVbQWMvSVw39dwEBwa7NRfDpKClHEU9Ff7XD8avFUvlk7i0qI1np02L7XijTjt\nUwhTnfnmuusIIHDCNqrkhETdYXLVJoSgRV1nV2t8MTldZatLm1OYf3uLAoGBAK3H\nL3PGC8HfAPEvlLIepyZnSBnjBGok7zIdWs/OoRGlpGy/qfDXRfFvDadlVbJePSy3\nIxD5l9KhK85qGm/R0/hMc3NCo4ez2rqDfSDu2iORGmEFg0jQ6YhOTz8zQfIK8FJ6\nCTmKY8AY6Hfh9YZaeLv3Oeugqc5WyixC/cu6XQuBAoGBAM/J1VViXLhYBO5jlJUD\nzcNpd5ZzfRMy74QWO0aiOTkQ7b5Jc8mzlK/aTHpFc0Zih+AOdH7JGJIJBcVrCcAb\nf90OBzjW0F9adzlq8BeTV57W+4qQjGE6TOUu2OMcNyJcqmJAU8juWTbimCav5BeG\ncAodGm6B8AGAKSI6bpEFM82I\n-----END PRIVATE KEY-----\n
+    depends_on:
+      - mongodb
+    networks:
+      - xz-network
+
+  xz-content-service:
+    build: ./xz-content-service
+    container_name: xz-content-service
+    env_file:
+      - ./xz-content-service/.env
+    environment:
+      - PORT=3005
+      - MONGODB_URI=mongodb://mongodb:27017
+      - MONGODB_DB=xz_content
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - POINT_SERVICE_URL=http://xz-point-service:3007
+    depends_on:
+      - mongodb
+      - redis
+    volumes:
+      - shared_uploads:/app/uploads
+    networks:
+      - xz-network
+
+  xz-chat-service:
+    build: ./xz-chat-service
+    container_name: xz-chat-service
+    env_file:
+      - ./xz-chat-service/.env
+    environment:
+      - PORT=3004
+      - mongodb_uri=mongodb://mongodb:27017
+      - mongodb_db_name=xz_chat_db
+      - redis_host=redis
+      - redis_port=6379
+      - USER_SERVICE_URL=http://xz-user-service:3006
+      - POINT_SERVICE_URL=http://xz-point-service:3007
+      - NOTIFICATION_SERVICE_URL=http://xz-notification-service:3010
+    depends_on:
+      - mongodb
+      - redis
+    volumes:
+      - shared_uploads:/app/public/uploads
+    networks:
+      - xz-network
+
+  xz-point-service:
+    build: ./xz-point-service
+    container_name: xz-point-service
+    environment:
+      - PORT=3007
+      - MONGODB_URI=mongodb://mongodb:27017
+      - MONGODB_DB=xz_points
+      - USER_SERVICE_URL=http://xz-user-service:3006
+    depends_on:
+      - mongodb
+    networks:
+      - xz-network
+
+  xz-feed-service:
+    build: ./xz-feed-service
+    container_name: xz-feed-service
+    environment:
+      - PORT=3009
+      - USER_SERVICE_URL=http://xz-user-service:3006
+      - CONTENT_SERVICE_URL=http://xz-content-service:3005
+    depends_on:
+      - xz-user-service
+      - xz-content-service
+    networks:
+      - xz-network
+
+  xz-notification-service:
+    build: ./xz-notification-service
+    container_name: xz-notification-service
+    environment:
+      - PORT=3010
+      - MONGODB_URI=mongodb://mongodb:27017
+      - MONGODB_DB=xz_notifications
+    depends_on:
+      - mongodb
+    networks:
+      - xz-network
+
+  # ── FRONTEND SERVICE ────────────────────────────────────────────────────────
+  xz-frontend:
+    build: ./xz-chat-service/frontend
+    container_name: xz-frontend
+    ports:
+      - "5173:80"
+    depends_on:
+      - xz-api-gateway
+    networks:
+      - xz-network
+
+  xz-api-gateway:
+    build: ./xz-api-gateway
+    container_name: xz-api-gateway
+    ports:
+      - "8000:8000"
+    environment:
+      - PORT=8000
+      - JWT_SECRET=xz_jwt_secret_shared_2026_key
+      - USER_SERVICE_URL=http://xz-user-service:3006
+      - CONTENT_SERVICE_URL=http://xz-content-service:3005
+      - CHAT_SERVICE_URL=http://xz-chat-service:3004
+      - FEED_SERVICE_URL=http://xz-feed-service:3009
+      - NOTIFICATION_SERVICE_URL=http://xz-notification-service:3010
+      - POINT_SERVICE_URL=http://xz-point-service:3007
+    depends_on:
+      - xz-user-service
+      - xz-content-service
+      - xz-chat-service
+      - xz-feed-service
+      - xz-notification-service
+      - xz-point-service
+    networks:
+      - xz-network
+
+networks:
+  xz-network:
+    driver: bridge
+
+volumes:
+  mongodb_data:
+  redis_data:
+  shared_uploads:

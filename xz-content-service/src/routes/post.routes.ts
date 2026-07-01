@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { PostController } from '../controllers/post.controller';
 import { verifyToken } from '../middleware/auth.middleware';
-import { handleSingleUpload } from '../middleware/upload.middleware';
+import { handleSingleUpload, handleMultipleUpload } from '../middleware/upload.middleware';
 import { cacheMiddleware } from '../middleware/cache.middleware';
 import { validatePostCreate, validateCommentCreate } from '../validators/post.validator';
 
@@ -11,7 +11,7 @@ const router = Router();
 router.get('/feed', verifyToken, cacheMiddleware(300, 'feed'), PostController.getFeed);
 
 router.post('/text', verifyToken, validatePostCreate, PostController.createTextPost);
-router.post('/media', verifyToken, handleSingleUpload('file'), validatePostCreate, PostController.createMediaPost);
+router.post('/media', verifyToken, handleMultipleUpload('file', 10), validatePostCreate, PostController.createMediaPost);
 
 router.get('/:postId', verifyToken, PostController.getPost);
 router.put('/:postId', verifyToken, handleSingleUpload('file'), validatePostCreate, PostController.editPost);

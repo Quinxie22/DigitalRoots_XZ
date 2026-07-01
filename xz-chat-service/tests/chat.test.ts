@@ -145,4 +145,58 @@ describe('Chat API Integration Tests', () => {
         .expect(400);
     });
   });
+
+  describe('GET /api/chat/download', () => {
+    const fs = require('fs');
+    const path = require('path');
+    const uploadDir = path.join(__dirname, '../public/uploads');
+    const testFile = path.join(uploadDir, 'test-download.txt');
+
+    beforeAll(() => {
+      if (!fs.existsSync(uploadDir)) {
+        fs.mkdirSync(uploadDir, { recursive: true });
+      }
+      fs.writeFileSync(testFile, 'Test download file content');
+    });
+
+    afterAll(() => {
+      if (fs.existsSync(testFile)) {
+        fs.unlinkSync(testFile);
+      }
+    });
+
+    it('should download a local file with the preserved custom filename', async () => {
+      const res = await request(app)
+        .get('/api/chat/download')
+        .set('Authorization', `Bearer ${token1}`)
+        .query({
+          url: '/uploads/test-download.txt',
+          filename: 'original-name.txt'
+        })
+        .expect(200);
+
+      expect(res.header['content-disposition']).toBe('attachment; filename="original-name.txt"');
+      expect(res.text).toBe('Test download file content');
+    });
+
+    it('should fail download if url is missing', async () => {
+      await request(app)
+        .get('/api/chat/download')
+        .set('Authorization', `Bearer ${token1}`)
+        .query({
+          filename: 'original-name.txt'
+        })
+        .expect(400);
+    });
+
+    it('should fail download if unauthorized', async () => {
+      await request(app)
+        .get('/api/chat/download')
+        .query({
+          url: '/uploads/test-download.txt',
+          filename: 'original-name.txt'
+        })
+        .expect(401);
+    });
+  });
 });

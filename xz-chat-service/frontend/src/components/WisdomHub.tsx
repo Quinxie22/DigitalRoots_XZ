@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Search, Heart, Bookmark, Eye, ArrowRight, Loader, Plus, X, BookOpen, AlertCircle, Check, ShieldAlert } from 'lucide-react';
-import { getArticles, searchArticles, getSavedBookmarks, likeArticle, bookmarkArticle, unbookmarkArticle, createArticle, publishArticle, createAdminUser, resolveContentUrl } from '../contentApi';
+import { getArticles, searchArticles, getSavedBookmarks, likeArticle, bookmarkArticle, unbookmarkArticle, createArticle, publishArticle, createAdminUser, resolveContentUrl, getArticleDetails, addArticleComment, deleteArticleComment } from '../contentApi';
 import type { User } from '../types';
 
 interface WisdomHubProps {
@@ -8,7 +9,14 @@ interface WisdomHubProps {
   token: string;
 }
 
+const CATEGORIES = [
+  'Cultural', 'Traditional', 'History', 'Educational', 'Tech',
+  'Career', 'Business', 'Finance', 'Health', 'Sports',
+  'Travel', 'Music', 'Arts', 'Community', 'Environment'
+];
+
 export default function WisdomHub({ currentUser, token }: WisdomHubProps) {
+  const { t } = useTranslation();
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState('');
   const [articles, setArticles] = useState<any[]>([]);
@@ -20,6 +28,8 @@ export default function WisdomHub({ currentUser, token }: WisdomHubProps) {
   
   // Selected article for reading details
   const [selectedArticle, setSelectedArticle] = useState<any | null>(null);
+  const [commentText, setCommentText] = useState('');
+  const [submittingComment, setSubmittingComment] = useState(false);
 
   // Create article form states
   const [newTitle, setNewTitle] = useState('');
@@ -62,6 +72,58 @@ export default function WisdomHub({ currentUser, token }: WisdomHubProps) {
       setError('Failed to fetch articles. Make sure the Content Service is running.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleSelectArticle = async (art: any) => {
+    setSelectedArticle(art);
+    try {
+      const res = await getArticleDetails(token, art.knowledgeId);
+      if (res.success && res.article) {
+        setSelectedArticle(res.article);
+        setArticles(prev => prev.map(a => a.knowledgeId === art.knowledgeId ? res.article : a));
+      }
+    } catch (err) {
+      console.error('Failed to fetch article details:', err);
+    }
+  };
+
+  const handleAddComment = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedArticle || !commentText.trim()) return;
+    try {
+      setSubmittingComment(true);
+      const res = await addArticleComment(token, selectedArticle.knowledgeId, commentText.trim());
+      if (res.success && res.comment) {
+        const updatedArticle = {
+          ...selectedArticle,
+          comments: [...(selectedArticle.comments || []), res.comment]
+        };
+        setSelectedArticle(updatedArticle);
+        setArticles(prev => prev.map(a => a.knowledgeId === selectedArticle.knowledgeId ? updatedArticle : a));
+        setCommentText('');
+      }
+    } catch (err) {
+      console.error('Failed to add comment:', err);
+    } finally {
+      setSubmittingComment(false);
+    }
+  };
+
+  const handleDeleteComment = async (commentId: string) => {
+    if (!selectedArticle) return;
+    try {
+      const res = await deleteArticleComment(token, selectedArticle.knowledgeId, commentId);
+      if (res.success) {
+        const updatedArticle = {
+          ...selectedArticle,
+          comments: (selectedArticle.comments || []).filter((c: any) => c._id !== commentId)
+        };
+        setSelectedArticle(updatedArticle);
+        setArticles(prev => prev.map(a => a.knowledgeId === selectedArticle.knowledgeId ? updatedArticle : a));
+      }
+    } catch (err) {
+      console.error('Failed to delete comment:', err);
     }
   };
 
@@ -292,33 +354,33 @@ export default function WisdomHub({ currentUser, token }: WisdomHubProps) {
     <div className="flex-1 flex flex-col h-full overflow-hidden bg-[var(--bg-dark)]">
       
       {/* Tab Navigation Header */}
-      <header className="h-16 flex-shrink-0 flex items-center justify-between px-8 border-b"
+      <header className="md:h-16 py-4 md:py-0 flex-shrink-0 flex flex-col md:flex-row md:items-center justify-between px-4 sm:px-8 gap-4 md:gap-0 border-b"
               style={{ background: 'var(--bg-card)', borderColor: 'var(--border)' }}>
-        <div className="flex items-center gap-6">
-          <h2 className="text-lg font-bold font-serif">Wisdom Hub</h2>
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-6 min-w-0 w-full md:w-auto">
+          <h2 className="text-base sm:text-lg font-bold font-serif whitespace-nowrap">{t('wisdomTitle')}</h2>
           
-          <div className="flex gap-1 bg-[var(--bg-elevated)] p-1 rounded-xl border" style={{ borderColor: 'var(--border)' }}>
+          <div className="flex gap-1 bg-[var(--bg-elevated)] p-1 rounded-xl border overflow-x-auto scrollbar-none max-w-full" style={{ borderColor: 'var(--border)' }}>
             <button 
               onClick={() => { setCurrentView('explore'); setUploadSuccess(false); }}
-              className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${currentView === 'explore' ? 'bg-white text-stone-900 shadow-sm' : 'text-stone-500'}`}>
-              Explore Library
+              className={`px-3 sm:px-4 py-1.5 rounded-lg text-[11px] sm:text-xs font-bold transition-all whitespace-nowrap ${currentView === 'explore' ? 'bg-white text-stone-900 shadow-sm' : 'text-stone-500'}`}>
+              {t('exploreLibrary', 'Explore Library')}
             </button>
             <button 
               onClick={() => { setCurrentView('bookmarks'); setUploadSuccess(false); }}
-              className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${currentView === 'bookmarks' ? 'bg-white text-stone-900 shadow-sm' : 'text-stone-500'}`}>
-              Saved Bookmarks
+              className={`px-3 sm:px-4 py-1.5 rounded-lg text-[11px] sm:text-xs font-bold transition-all whitespace-nowrap ${currentView === 'bookmarks' ? 'bg-white text-stone-900 shadow-sm' : 'text-stone-500'}`}>
+              {t('savedBookmarks', 'Saved Bookmarks')}
             </button>
             {currentUser.role === 'Admin' && (
               <>
                 <button 
                   onClick={() => { setCurrentView('moderation'); setUploadSuccess(false); }}
-                  className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${currentView === 'moderation' ? 'bg-white text-stone-900 shadow-sm' : 'text-stone-500'}`}>
-                  Moderation Queue
+                  className={`px-3 sm:px-4 py-1.5 rounded-lg text-[11px] sm:text-xs font-bold transition-all whitespace-nowrap ${currentView === 'moderation' ? 'bg-white text-stone-900 shadow-sm' : 'text-stone-500'}`}>
+                  {t('moderationQueue', 'Moderation Queue')}
                 </button>
                 <button 
                   onClick={() => { setCurrentView('manage-admins'); setUploadSuccess(false); }}
-                  className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${currentView === 'manage-admins' ? 'bg-white text-stone-900 shadow-sm' : 'text-stone-500'}`}>
-                  Manage Admins
+                  className={`px-3 sm:px-4 py-1.5 rounded-lg text-[11px] sm:text-xs font-bold transition-all whitespace-nowrap ${currentView === 'manage-admins' ? 'bg-white text-stone-900 shadow-sm' : 'text-stone-500'}`}>
+                  {t('manageAdmins', 'Manage Admins')}
                 </button>
               </>
             )}
@@ -327,10 +389,10 @@ export default function WisdomHub({ currentUser, token }: WisdomHubProps) {
 
         <button 
           onClick={() => setCurrentView('create')}
-          className="flex items-center gap-2 px-4 py-2 rounded-xl text-white font-bold text-xs shadow-sm hover:scale-[1.02] active:scale-[0.98] transition-all"
+          className="flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-white font-bold text-xs shadow-sm hover:scale-[1.02] active:scale-[0.98] transition-all self-end md:self-auto flex-shrink-0"
           style={{ background: 'var(--primary)' }}>
           <Plus size={14} />
-          Write Article
+          {t('wisdomWriteArticle')}
         </button>
       </header>
 
@@ -379,29 +441,11 @@ export default function WisdomHub({ currentUser, token }: WisdomHubProps) {
                     onChange={(e) => setNewCategory(e.target.value)}
                     className="px-4 py-2.5 rounded-xl border outline-none text-xs bg-[var(--bg-elevated)]"
                     style={{ borderColor: 'var(--border)' }}>
-                    <option value="Educational">Educational</option>
-                    <option value="Cultural">Cultural</option>
-                    <option value="Traditional">Traditional</option>
-                    <option value="Tutorial">Tutorial</option>
-                    <option value="Technical">Technical</option>
-                    <option value="Health">Health</option>
-                    <option value="Sports">Sports</option>
-                    <option value="Travel">Travel</option>
-                    <option value="Fashion">Fashion</option>
-                    <option value="Food">Food</option>
-                    <option value="Music">Music</option>
-                    <option value="Arts">Arts</option>
-                    <option value="Film">Film</option>
-                    <option value="Gaming">Gaming</option>
-                    <option value="Tech">Tech</option>
-                    <option value="Business">Business</option>
-                    <option value="Career">Career</option>
-                    <option value="Finance">Finance</option>
-                    <option value="News">News</option>
-                    <option value="Opinion">Opinion</option>
-                    <option value="Community">Community</option>
-                    <option value="Environment">Environment</option>
-                    <option value="Politics">Politics</option>
+                    {CATEGORIES.map(cat => (
+                      <option key={cat} value={cat}>
+                        {t('cat_' + cat, cat)}
+                      </option>
+                    ))}
                   </select>
                 </div>
 
@@ -628,7 +672,7 @@ export default function WisdomHub({ currentUser, token }: WisdomHubProps) {
                     type="text" 
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="Search titles, content, tags..."
+                    placeholder={t('wisdomSearchPlaceholder')}
                     className="outline-none border-none bg-transparent text-xs w-full"
                   />
                 </div>
@@ -640,37 +684,19 @@ export default function WisdomHub({ currentUser, token }: WisdomHubProps) {
                   }}
                   className="px-4 py-2.5 rounded-2xl border outline-none text-xs bg-[var(--bg-card)] select-none cursor-pointer"
                   style={{ borderColor: 'var(--border)' }}>
-                  <option value="">All Categories</option>
-                  <option value="Educational">Educational</option>
-                  <option value="Cultural">Cultural</option>
-                  <option value="Traditional">Traditional</option>
-                  <option value="Tutorial">Tutorial</option>
-                  <option value="Technical">Technical</option>
-                  <option value="Health">Health</option>
-                  <option value="Sports">Sports</option>
-                  <option value="Travel">Travel</option>
-                  <option value="Fashion">Fashion</option>
-                  <option value="Food">Food</option>
-                  <option value="Music">Music</option>
-                  <option value="Arts">Arts</option>
-                  <option value="Film">Film</option>
-                  <option value="Gaming">Gaming</option>
-                  <option value="Tech">Tech</option>
-                  <option value="Business">Business</option>
-                  <option value="Career">Career</option>
-                  <option value="Finance">Finance</option>
-                  <option value="News">News</option>
-                  <option value="Opinion">Opinion</option>
-                  <option value="Community">Community</option>
-                  <option value="Environment">Environment</option>
-                  <option value="Politics">Politics</option>
+                  <option value="">{t('allCategories', 'All Categories')}</option>
+                  {CATEGORIES.map(cat => (
+                    <option key={cat} value={cat}>
+                      {t('cat_' + cat, cat)}
+                    </option>
+                  ))}
                 </select>
 
                 <button 
                   type="submit"
                   className="px-6 rounded-2xl text-white text-xs font-bold"
                   style={{ background: 'var(--primary)' }}>
-                  Search
+                  {t('search', 'Search')}
                 </button>
               </form>
             )}
@@ -679,13 +705,12 @@ export default function WisdomHub({ currentUser, token }: WisdomHubProps) {
             {loading ? (
               <div className="py-24 flex flex-col items-center justify-center gap-2 text-stone-400">
                 <Loader className="animate-spin" size={24} />
-                <span className="text-xs">Fetching articles library...</span>
+                <span className="text-xs">{t('loading')}</span>
               </div>
             ) : articles.length === 0 ? (
               <div className="py-24 text-center text-xs text-stone-400 bg-[var(--bg-card)] border border-dashed rounded-3xl p-8 max-w-lg mx-auto">
                 <AlertCircle size={24} className="mx-auto mb-3 text-stone-450" />
-                <h4 className="font-bold mb-1">No articles found</h4>
-                <p>Try searching for a different keyword or create the first article!</p>
+                <h4 className="font-bold mb-1">{t('wisdomNoArticles')}</h4>
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -756,9 +781,9 @@ export default function WisdomHub({ currentUser, token }: WisdomHubProps) {
                               <Bookmark size={14} className={isBookmarked ? "fill-amber-500 text-amber-500" : ""} />
                             </button>
                             <button 
-                              onClick={() => setSelectedArticle(art)}
+                              onClick={() => handleSelectArticle(art)}
                               className="flex items-center gap-0.5 text-xs font-bold text-red-500 dark:text-red-400 hover:underline">
-                              Read <ArrowRight size={12} />
+                              {t('wisdomReadMore')} <ArrowRight size={12} />
                             </button>
                           </div>
                         </div>
@@ -812,6 +837,63 @@ export default function WisdomHub({ currentUser, token }: WisdomHubProps) {
                    style={{ borderColor: 'var(--border)' }}>
                 {selectedArticle.content}
               </div>
+
+              {/* Comments Section */}
+              <div className="border-t pt-6 mt-6 space-y-4" style={{ borderColor: 'var(--border)' }}>
+                <h4 className="text-sm font-bold font-serif" style={{ color: 'var(--text-primary)' }}>
+                  {t('homeReflectionsTitle')} ({selectedArticle.comments?.length || 0})
+                </h4>
+
+                {/* Comment list */}
+                <div className="space-y-3 max-h-60 overflow-y-auto pr-1">
+                  {(!selectedArticle.comments || selectedArticle.comments.length === 0) ? (
+                    <p className="text-xs italic text-stone-400">{t('homeNoReflections')}</p>
+                  ) : (
+                    selectedArticle.comments.map((comment: any) => {
+                      const isCommentAuthor = comment.userId === currentUser.id;
+                      const isAdmin = currentUser.role === 'Admin';
+                      return (
+                        <div key={comment._id || comment.timestamp} className="p-3.5 rounded-2xl bg-[var(--bg-elevated)] border text-xs text-stone-600 dark:text-stone-300 flex justify-between items-start gap-4" style={{ borderColor: 'var(--border)' }}>
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-2">
+                              <span className="font-bold text-[10px] text-stone-705 dark:text-stone-200">{comment.userName}</span>
+                              <span className="text-[9px] text-stone-455">{new Date(comment.timestamp).toLocaleString()}</span>
+                            </div>
+                            <p className="text-stone-600 dark:text-stone-350 pr-4 leading-relaxed">{comment.text}</p>
+                          </div>
+                          {(isCommentAuthor || isAdmin) && (
+                            <button
+                              onClick={() => handleDeleteComment(comment._id)}
+                              className="text-[10px] text-red-500 hover:underline hover:text-red-400 font-bold self-start mt-0.5">
+                              {t('delete', 'Delete')}
+                            </button>
+                          )}
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+
+                {/* Add Comment Form */}
+                <form onSubmit={handleAddComment} className="flex gap-2 pt-2">
+                  <input
+                    type="text"
+                    value={commentText}
+                    onChange={(e) => setCommentText(e.target.value)}
+                    placeholder={t('homeReflectionPlaceholder')}
+                    required
+                    className="flex-1 px-4 py-2.5 rounded-xl border outline-none text-xs bg-[var(--bg-elevated)] text-stone-850 dark:text-white"
+                    style={{ borderColor: 'var(--border)' }}
+                  />
+                  <button
+                    type="submit"
+                    disabled={submittingComment}
+                    className="px-4 py-2.5 rounded-xl text-white text-xs font-bold transition-all"
+                    style={{ background: 'var(--primary)' }}>
+                    {submittingComment ? t('loading') : t('homeReflectButton')}
+                  </button>
+                </form>
+              </div>
             </div>
 
             {/* Engagement status bar in modal footer */}
@@ -821,18 +903,17 @@ export default function WisdomHub({ currentUser, token }: WisdomHubProps) {
                   onClick={() => handleLike(selectedArticle.knowledgeId)}
                   className="flex items-center gap-1.5 hover:text-red-500 transition-colors">
                   <Heart size={16} className={selectedArticle.likes?.includes(currentUser.id) ? "fill-red-500 text-red-500" : ""} />
-                  <span className="font-bold">{selectedArticle.likes?.length || 0} likes</span>
+                  <span className="font-bold">{selectedArticle.likes?.length || 0} {t('homeComments', 'likes')}</span>
                 </button>
-                <span className="flex items-center gap-1.5"><Eye size={16} /> {selectedArticle.views || 0} views</span>
+                <span className="flex items-center gap-1.5"><Eye size={16} /> {selectedArticle.views || 0} {t('homeViews', 'views')}</span>
               </div>
               <button 
                 onClick={() => handleBookmarkToggle(selectedArticle)}
                 className="flex items-center gap-1.5 text-xs text-stone-600 dark:text-stone-300 hover:underline">
                 <Bookmark size={16} className={selectedArticle.bookmarks?.includes(currentUser.id) ? "fill-amber-500 text-amber-500" : ""} />
-                <span>{selectedArticle.bookmarks?.includes(currentUser.id) ? 'Bookmarked' : 'Save to personal list'}</span>
+                <span>{selectedArticle.bookmarks?.includes(currentUser.id) ? t('wisdomBookmarked') : t('wisdomSaveToList')}</span>
               </button>
             </div>
-
           </div>
         </div>
       )}

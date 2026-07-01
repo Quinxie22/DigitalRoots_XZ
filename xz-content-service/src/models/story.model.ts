@@ -19,6 +19,7 @@ export interface IStory extends Document {
   transcript: string;
   transcriptStatus: 'pending' | 'processing' | 'completed' | 'failed';
   language: string;
+  translations?: Map<string, string>;
   culturalCategory: CulturalCategory;
   tags: string[];
   isPublished: boolean;
@@ -53,6 +54,11 @@ const StorySchema = new Schema<IStory>(
       default: 'pending',
     },
     language: { type: String, required: true, default: 'en' },
+    translations: {
+      type: Map,
+      of: String,
+      default: {},
+    },
     culturalCategory: { type: String, enum: Object.values(CulturalCategory), required: true },
     tags: { type: [String], default: [] },
     isPublished: { type: Boolean, default: false },

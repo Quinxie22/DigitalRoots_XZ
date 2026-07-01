@@ -1,5 +1,5 @@
 import { Schema, model } from 'mongoose';
-import bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs';
 
 const userSchema = new Schema(
   {
@@ -12,7 +12,12 @@ const userSchema = new Schema(
     },
     password: {
       type: String,
-      required: true,
+      required: false, // Optional: Google Sign-In users have no password
+      default: '',
+    },
+    firebaseUid: {
+      type: String,
+      default: '', // Links a Firebase Auth UID to this MongoDB profile
     },
     name: {
       type: String,
@@ -23,6 +28,15 @@ const userSchema = new Schema(
       type: String,
       required: true,
       default: 'Youth', // Can be 'Arthur', 'Sarah', 'Tessa', 'Felix', 'Elder', 'Admin', 'Youth'
+    },
+    status: {
+      type: String,
+      enum: ['Active', 'Suspended', 'Banned'],
+      default: 'Active',
+    },
+    age: {
+      type: Number,
+      default: 0,
     },
     avatar: {
       type: String,
@@ -59,10 +73,11 @@ const userSchema = new Schema(
   }
 );
 
-// Hash password before saving
+// Hash password before saving (skip if password is empty — Firebase-only accounts)
 userSchema.pre('save', async function (this: any) {
   const user = this;
   if (!user.isModified('password')) return;
+  if (!user.password || user.password.trim() === '') return;
 
   const salt = await bcrypt.genSalt(10);
   user.password = await bcrypt.hash(user.password, salt);

@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
 import { User } from '../models/user.model';
 import { AuthRequest } from '../middleware/auth.middleware';
+import { verifyFirebaseToken } from '../config/firebase';
 
 const getJWTSecret = () => process.env.JWT_SECRET || 'xz_jwt_secret_shared_2026_key';
 const getJWTExpiry = () => process.env.JWT_EXPIRY || '24h';
@@ -15,7 +16,7 @@ const getInitials = (name: string): string => {
 };
 
 export const register = async (req: Request, res: Response): Promise<void> => {
-  const { email, password, name, role, avatar } = req.body;
+  const { email, password, name, role, avatar, age } = req.body;
 
   if (!email || !password || !name) {
     res.status(400).json({ error: 'Validation Error', message: 'Email, password, and name are required' });
@@ -35,7 +36,8 @@ export const register = async (req: Request, res: Response): Promise<void> => {
     }
 
     const calculatedAvatar = avatar || getInitials(name);
-    const userRole = role || 'Youth';
+    const calculatedAge = age ? Number(age) : 0;
+    const userRole = calculatedAge >= 40 ? 'Elder' : 'Youth';
 
     const newUser = new User({
       email,
@@ -43,6 +45,7 @@ export const register = async (req: Request, res: Response): Promise<void> => {
       name,
       role: userRole,
       avatar: calculatedAvatar,
+      age: calculatedAge,
     });
 
     await newUser.save();
@@ -68,6 +71,7 @@ export const register = async (req: Request, res: Response): Promise<void> => {
         name: newUser.name,
         role: newUser.role,
         avatar: newUser.avatar,
+        age: newUser.age,
         bio: newUser.bio,
         languages: newUser.languages,
         community: newUser.community,
@@ -94,6 +98,11 @@ export const login = async (req: Request, res: Response): Promise<void> => {
     const user = await User.findOne({ email });
     if (!user) {
       res.status(401).json({ error: 'Unauthorized', message: 'Invalid email or password' });
+      return;
+    }
+
+    if (user.status === 'Suspended' || user.status === 'Banned') {
+      res.status(403).json({ error: 'Forbidden', message: `Your account is ${user.status}. Please contact an administrator.` });
       return;
     }
 
@@ -130,6 +139,7 @@ export const login = async (req: Request, res: Response): Promise<void> => {
         contentPreferences: user.contentPreferences,
         legacyCredits: user.legacyCredits,
         badges: user.badges,
+        age: user.age,
       },
     });
   } catch (error: any) {
@@ -163,6 +173,7 @@ export const getProfile = async (req: AuthRequest, res: Response): Promise<void>
         contentPreferences: user.contentPreferences,
         legacyCredits: user.legacyCredits,
         badges: user.badges,
+        age: user.age,
       }
     });
   } catch (error: any) {
@@ -176,8 +187,16 @@ export const verify = async (req: AuthRequest, res: Response): Promise<void> => 
     res.status(401).json({ error: 'Unauthorized', message: 'Invalid token payload' });
     return;
   }
-  // Simply echo back decoded token payload if validation passes
-  res.status(200).json({ valid: true, user: req.user });
+  try {
+    const user = await User.findById(req.user.id);
+    if (!user || user.status === 'Suspended' || user.status === 'Banned') {
+      res.status(403).json({ error: 'Forbidden', message: `Your account is ${user ? user.status : 'disabled'}. Please contact an administrator.` });
+      return;
+    }
+    res.status(200).json({ valid: true, user: req.user });
+  } catch (error: any) {
+    res.status(500).json({ error: 'Internal Server Error', message: error.message });
+  }
 };
 
 export const getAllUsers = async (req: Request, res: Response): Promise<void> => {
@@ -196,7 +215,7 @@ export const updateProfile = async (req: AuthRequest, res: Response): Promise<vo
     return;
   }
 
-  const { name, bio, languages, community, contentPreferences, avatar, password } = req.body;
+  const { name, bio, languages, community, contentPreferences, avatar, password, age, role } = req.body;
 
   try {
     const user = await User.findById(req.user.id);
@@ -211,6 +230,11 @@ export const updateProfile = async (req: AuthRequest, res: Response): Promise<vo
     if (contentPreferences !== undefined) user.contentPreferences = contentPreferences;
     if (avatar !== undefined) user.avatar = avatar;
     if (password !== undefined && password.trim() !== '') user.password = password;
+    if (age !== undefined) {
+      const calculatedAge = Number(age);
+      user.age = calculatedAge;
+      user.role = calculatedAge >= 40 ? 'Elder' : 'Youth';
+    }
 
     if (languages !== undefined) {
       const validLangs = languages.filter((l: string) => ['English', 'French'].includes(l));
@@ -232,6 +256,7 @@ export const updateProfile = async (req: AuthRequest, res: Response): Promise<vo
         contentPreferences: user.contentPreferences,
         legacyCredits: user.legacyCredits,
         badges: user.badges,
+        age: user.age,
       }
     });
   } catch (error: any) {
@@ -329,4 +354,205 @@ export const createAdmin = async (req: AuthRequest, res: Response): Promise<void
   }
 };
 
+// ─────────────────────────────────────────────────────────────────────────────
+// firebaseLogin
+// Called after the client obtains a Firebase ID Token (email/password or
+// Google Sign-In). Verifies the token, finds-or-creates the MongoDB profile,
+// and issues our own internal JWT used by all microservices.
+//
+// Request body:
+//   idToken  (string, required)  — Firebase ID Token
+//   role     (string, optional)  — 'Youth' | 'Elder'
+//                                  Required for new Email/Password registrations.
+//                                  Omitted for Google Sign-In (frontend prompts
+//                                  role selection separately via needsRoleSelection).
+//   name     (string, optional)  — Display name override
+// ─────────────────────────────────────────────────────────────────────────────
+export const firebaseLogin = async (req: Request, res: Response): Promise<void> => {
+  const { idToken, role, name: requestedName, age } = req.body;
 
+  if (!idToken) {
+    res.status(400).json({ error: 'Validation Error', message: 'Firebase idToken is required' });
+    return;
+  }
+
+  try {
+    // Step 1 — Verify the Firebase ID Token
+    const decoded = await verifyFirebaseToken(idToken);
+    const firebaseEmail: string = (decoded.email || '').toLowerCase().trim();
+    const firebaseName: string = requestedName || decoded.name || decoded.email?.split('@')[0] || 'User';
+    const firebaseUid: string = decoded.uid || '';
+
+    if (!firebaseEmail) {
+      res.status(400).json({ error: 'Validation Error', message: 'Firebase token does not contain an email address' });
+      return;
+    }
+
+    // Step 2 — Look up by email in MongoDB
+    let user = await User.findOne({ email: firebaseEmail });
+
+    if (user) {
+      if (user.status === 'Suspended' || user.status === 'Banned') {
+        res.status(403).json({ error: 'Forbidden', message: `Your account is ${user.status}. Please contact an administrator.` });
+        return;
+      }
+      // ── Returning user (legacy OR previously registered via Firebase) ──────
+      // Link the Firebase UID if not already stored (e.g. legacy user signs in
+      // with Google using the same email for the first time).
+      if (!user.firebaseUid && firebaseUid) {
+        user.firebaseUid = firebaseUid;
+        await user.save();
+      }
+    } else {
+      // ── Brand-new user ────────────────────────────────────────────────────
+      // For Email/Password Firebase registration, 'role' is sent from the form.
+      // For Google Sign-In, 'role' is absent — we flag needsRoleSelection so
+      // the frontend can show a role-picker modal before creating the profile.
+      if (!role) {
+        res.status(200).json({
+          needsRoleSelection: true,
+          needsOnboarding: true,
+          firebaseUid,
+          email: firebaseEmail,
+          name: firebaseName,
+          message: 'New Google user — role selection required before profile creation',
+        });
+        return;
+      }
+
+      if (role === 'Admin') {
+        res.status(400).json({ error: 'Validation Error', message: 'Direct registration as Administrator is restricted' });
+        return;
+      }
+
+      const initials = getInitials(firebaseName);
+      const calculatedAge = age ? Number(age) : 0;
+      const calculatedRole = calculatedAge >= 40 ? 'Elder' : 'Youth';
+
+      user = new User({
+        email: firebaseEmail,
+        password: '',        // No password for Firebase/Google-only accounts
+        firebaseUid,
+        name: firebaseName,
+        role: calculatedRole,
+        avatar: initials,
+        age: calculatedAge,
+      });
+      await user.save();
+    }
+
+    // Step 3 — Check if profile is incomplete (triggers onboarding modal)
+    const needsOnboarding = !user.bio || !user.community || user.contentPreferences.length === 0;
+
+    // Step 4 — Issue internal JWT (same format used by ALL microservices)
+    const token = jwt.sign(
+      {
+        id: user._id,
+        email: user.email,
+        role: user.role,
+        name: user.name,
+      },
+      getJWTSecret(),
+      { expiresIn: getJWTExpiry() as any }
+    );
+
+    res.status(200).json({
+      message: 'Firebase login successful',
+      needsOnboarding,
+      token,
+      user: {
+        id: user._id,
+        email: user.email,
+        name: user.name,
+        role: user.role,
+        avatar: user.avatar,
+        bio: user.bio,
+        languages: user.languages,
+        community: user.community,
+        contentPreferences: user.contentPreferences,
+        legacyCredits: user.legacyCredits,
+        badges: user.badges,
+        age: user.age,
+      },
+    });
+  } catch (error: any) {
+    console.error('[User Service] Firebase login error:', error);
+    if (error.code === 'auth/id-token-expired') {
+      res.status(401).json({ error: 'Unauthorized', message: 'Firebase token has expired. Please sign in again.' });
+      return;
+    }
+    if (error.code === 'auth/argument-error' || error.code === 'auth/invalid-id-token') {
+      res.status(401).json({ error: 'Unauthorized', message: 'Invalid Firebase token.' });
+      return;
+    }
+    res.status(500).json({ error: 'Internal Server Error', message: error.message });
+  }
+};
+
+export const updateUserStatus = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const { userId } = req.params;
+    const { status, reason } = req.body;
+
+    if (!['Active', 'Suspended', 'Banned'].includes(status)) {
+      res.status(400).json({ error: 'Validation Error', message: 'Invalid status value' });
+      return;
+    }
+
+    const user = await User.findById(userId);
+    if (!user) {
+      res.status(404).json({ error: 'Not Found', message: 'User not found' });
+      return;
+    }
+
+    user.status = status;
+    await user.save();
+
+    if (status === 'Banned') {
+      try {
+        const contentServiceUrl = process.env.VITE_CONTENT_SERVICE_URL || 'http://localhost:3004';
+        const authHeader = req.headers.authorization || '';
+        await (global as any).fetch(`${contentServiceUrl}/api/moderation/ban`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: authHeader
+          },
+          body: JSON.stringify({ userIdToBan: userId, reason })
+        });
+      } catch (err) {
+        console.warn('[User Service] Failed to call content service ban endpoint:', err);
+      }
+    }
+
+    res.status(200).json({ message: `User status updated to ${status} successfully`, user });
+  } catch (error: any) {
+    console.error('[User Service] Update user status error:', error);
+    res.status(500).json({ error: 'Internal Server Error', message: error.message });
+  }
+};
+
+export const updateUserRole = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const { userId } = req.params;
+    const { role } = req.body;
+
+    if (!['Elder', 'Youth', 'Admin'].includes(role)) {
+      res.status(400).json({ error: 'Validation Error', message: 'Invalid role value' });
+      return;
+    }
+
+    const user = await User.findById(userId);
+    if (!user) {
+      res.status(404).json({ error: 'Not Found', message: 'User not found' });
+      return;
+    }
+
+    user.role = role;
+    await user.save();
+    res.status(200).json({ message: `User role updated to ${role} successfully`, user });
+  } catch (error: any) {
+    console.error('[User Service] Update user role error:', error);
+    res.status(500).json({ error: 'Internal Server Error', message: error.message });
+  }
+};

@@ -174,7 +174,9 @@ export class StoryController {
       }
       
       // Increment view count
-      await Story.updateOne({ storyId }, { $inc: { viewCount: 1 } });
+      if (req.query.incrementView !== 'false') {
+        await Story.updateOne({ storyId }, { $inc: { viewCount: 1 } });
+      }
       
       res.status(200).json({ success: true, story });
     } catch (error: any) {
@@ -357,9 +359,22 @@ export class StoryController {
         return;
       }
 
-      story.isPublished = false;
-      story.rejectionReason = reason;
-      await story.save();
+      // Trigger notification to the author that content was rejected
+      try {
+        const NOTIFICATION_SERVICE_URL = process.env.NOTIFICATION_SERVICE_URL || 'http://localhost:3010';
+        await axios.post(`${NOTIFICATION_SERVICE_URL}/api/notifications`, {
+          userId: story.authorId,
+          title: 'Story Rejected',
+          message: `Your story "${story.title}" was rejected by the administrator. Reason: "${reason}"`,
+          type: 'story_rejected',
+          referenceId: story.storyId
+        });
+      } catch (err: any) {
+        logger.error(`Failed to send story rejection notification for story ${storyId}: ${err.message}`);
+      }
+
+      // Delete the story from database so it disappears completely
+      await Story.deleteOne({ storyId });
 
       // Log action
       await AuditLog.create({
@@ -372,24 +387,10 @@ export class StoryController {
         reason,
       });
 
-      logger.info(`Story rejected: ${storyId} by admin ${adminId}. Reason: ${reason}`);
+      logger.info(`Story rejected and deleted: ${storyId} by admin ${adminId}. Reason: ${reason}`);
       await clearCachePattern('stories:*');
 
-      // Trigger notification to the author that content was rejected
-      try {
-        const NOTIFICATION_SERVICE_URL = process.env.NOTIFICATION_SERVICE_URL || 'http://localhost:3010';
-        await axios.post(`${NOTIFICATION_SERVICE_URL}/api/notifications`, {
-          userId: story.authorId,
-          title: 'Story Requires Revision',
-          message: `Your story "${story.title}" was not approved. Reason: "${reason}"`,
-          type: 'story_rejected',
-          referenceId: story.storyId
-        });
-      } catch (err: any) {
-        logger.error(`Failed to send story rejection notification for story ${storyId}: ${err.message}`);
-      }
-
-      res.status(200).json({ success: true, story });
+      res.status(200).json({ success: true, message: 'Story rejected and deleted successfully' });
     } catch (error: any) {
       res.status(500).json({ success: false, error: error.message });
     }
@@ -496,6 +497,59 @@ export class StoryController {
       await clearCachePattern('stories:*');
       res.status(200).json({ success: true, message: 'Story permanently removed' });
     } catch (error: any) {
+      res.status(500).json({ success: false, error: error.message });
+    }
+  }
+
+  // Translate a story's transcript to a target language
+  static async translateTranscript(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const { storyId } = req.params;
+      const { targetLanguage } = req.body; // e.g. 'en' or 'fr'
+
+      if (!targetLanguage || !['en', 'fr'].includes(targetLanguage)) {
+        res.status(400).json({ success: false, error: 'Target language must be either en or fr' });
+        return;
+      }
+
+      const story = await Story.findOne({ storyId });
+      if (!story) {
+        res.status(404).json({ success: false, error: 'Story not found' });
+        return;
+      }
+
+      if (!story.transcript) {
+        res.status(400).json({ success: false, error: 'No transcript available to translate yet' });
+        return;
+      }
+
+      const sourceLanguage = story.language || 'en';
+      if (sourceLanguage === targetLanguage) {
+        res.status(200).json({ success: true, translatedText: story.transcript });
+        return;
+      }
+
+      // Check if translation already cached
+      const cached = story.translations ? story.translations.get(targetLanguage) : null;
+      if (cached) {
+        res.status(200).json({ success: true, translatedText: cached });
+        return;
+      }
+
+      // Translate using TranslationService
+      const { TranslationService } = require('../services/translation.service');
+      const translatedText = await TranslationService.translateText(story.transcript, sourceLanguage, targetLanguage);
+
+      // Save translation in DB
+      if (!story.translations) {
+        story.translations = new Map();
+      }
+      story.translations.set(targetLanguage, translatedText);
+      await story.save();
+
+      res.status(200).json({ success: true, translatedText });
+    } catch (error: any) {
+      logger.error('Translate transcript error:', error);
       res.status(500).json({ success: false, error: error.message });
     }
   }

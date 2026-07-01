@@ -1,16 +1,9 @@
-# Stage 1: Build TypeScript source code
-FROM node:20-alpine AS builder
-WORKDIR /app
-COPY package*.json ./
-RUN npm ci
-COPY . .
-RUN npm run build
-
-# Stage 2: Production runtime environment
+# Production runtime — dist pre-built on host, node_modules copied in
+# bcryptjs (pure JS) used instead of bcrypt — no native compilation required
 FROM node:20-alpine
 WORKDIR /app
 COPY package*.json ./
-RUN npm ci --only=production
-COPY --from=builder /app/dist ./dist
+COPY node_modules ./node_modules
+COPY dist ./dist
 EXPOSE 3006
 CMD ["npm", "start"]

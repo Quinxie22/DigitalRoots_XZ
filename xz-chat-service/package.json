@@ -15,6 +15,7 @@
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
+    "axios": "^1.7.9",
     "bull": "^4.16.5",
     "cloudinary": "^2.10.0",
     "compression": "^1.8.1",
@@ -54,5 +55,8 @@
     "ts-jest": "^29.4.11",
     "ts-node": "^10.9.2",
     "typescript": "^6.0.3"
+  },
+  "optionalDependencies": {
+    "@img/sharp-linux-musl-x64": "^0.34.5"
   }
 }

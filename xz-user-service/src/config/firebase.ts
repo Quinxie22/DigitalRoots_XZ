@@ -1,48 +1,61 @@
-import admin from 'firebase-admin';
+import { initializeApp, cert, getApps } from 'firebase-admin/app';
+import { getAuth } from 'firebase-admin/auth';
 
-const logger = console; // user-service has no utils/logger folder in this repo
+const logger = console;
 
+// ─── Lazy initialization ─────────────────────────────────────────────────────
+// We initialize on first call rather than at module load time so that dotenv
+// has always been configured by the time we read process.env variables.
+let initialized = false;
+let isMock = false;
 
-// Check if Firebase is configured
-const hasFirebaseConfig =
-  process.env.FIREBASE_PROJECT_ID &&
-  process.env.FIREBASE_PRIVATE_KEY &&
-  process.env.FIREBASE_CLIENT_EMAIL;
+function initFirebase() {
+  if (initialized) return;
+  initialized = true;
 
-const isMockFirebase = !hasFirebaseConfig;
+  const projectId   = process.env.FIREBASE_PROJECT_ID;
+  const privateKey  = process.env.FIREBASE_PRIVATE_KEY;
+  const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
 
-if (hasFirebaseConfig) {
-  const serviceAccount = {
-    projectId: process.env.FIREBASE_PROJECT_ID as string,
-    privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n') as string,
-    clientEmail: process.env.FIREBASE_CLIENT_EMAIL as string,
-  };
-
-  // TypeScript in this repo may not know firebase-admin static typings (apps/credential/auth)
-  // so we rely on initializeApp always being safe.
-  try {
-    admin.initializeApp({
-      credential: (admin as any).credential.cert(serviceAccount as any),
-    });
-    logger.info('Firebase Admin initialized for token verification');
-  } catch (e) {
-    // initializeApp throws if already initialized; ignore
+  if (!projectId || !privateKey || !clientEmail) {
+    logger.warn('[Firebase] Credentials not fully set. Running in Mock/Development mode.');
+    isMock = true;
+    return;
   }
-} else {
-  logger.warn('Firebase credentials not fully set in .env. Running Firebase in Mock/Development mode.');
+
+  try {
+    if (getApps().length === 0) {
+      initializeApp({
+        credential: cert({
+          projectId,
+          privateKey: privateKey.replace(/\\n/g, '\n'),
+          clientEmail,
+        }),
+      });
+      logger.info('[Firebase] Admin SDK initialized successfully ✓');
+    } else {
+      logger.info('[Firebase] Admin SDK already initialized ✓');
+    }
+  } catch (e: any) {
+    if (e.code === 'app/duplicate-app') {
+      logger.info('[Firebase] Admin SDK already initialized ✓');
+    } else {
+      logger.error('[Firebase] Admin SDK initialization error:', e.message);
+      isMock = true;
+    }
+  }
 }
 
+// ─── Public API ──────────────────────────────────────────────────────────────
 export const verifyFirebaseToken = async (token: string): Promise<any> => {
-  if (isMockFirebase) {
-    return {
-      uid: token === 'mock-token' || !token ? 'mock-user-123' : token,
-      email: 'mock-user@example.com',
-    };
+  initFirebase(); // ensure SDK is ready on first use
+
+  if (isMock) {
+    // Firebase credentials not configured — refuse all token verification
+    // rather than silently accepting any token as a valid user.
+    throw new Error('[Firebase] Token verification unavailable: Firebase Admin SDK credentials are not configured. Set FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL, and FIREBASE_PRIVATE_KEY.');
   }
 
-  // Firebase ID token verification
-  return await (admin as any).auth().verifyIdToken(token);
+  return await getAuth().verifyIdToken(token);
 };
-
-export default admin;
 

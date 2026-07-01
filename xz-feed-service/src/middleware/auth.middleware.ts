@@ -17,25 +17,21 @@ export const verifyToken = async (
   res: Response,
   next: NextFunction
 ): Promise<void> => {
-  const authHeader = req.headers.authorization;
-  
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    res.status(401).json({ error: 'Unauthorized', message: 'No token provided' });
+  const userId = req.headers['x-user-id'] as string;
+  const userRole = req.headers['x-user-role'] as string;
+  const userEmail = req.headers['x-user-email'] as string;
+  const userName = req.headers['x-user-name'] as string;
+
+  if (!userId) {
+    res.status(401).json({ error: 'Unauthorized', message: 'Missing gateway authentication headers' });
     return;
   }
 
-  const token = authHeader.split('Bearer ')[1];
-
-  try {
-    const decodedToken = jwt.verify(token, getJWTSecret()) as any;
-    req.user = {
-      id: decodedToken.id,
-      email: decodedToken.email || '',
-      role: decodedToken.role || 'Youth',
-      name: decodedToken.name || '',
-    };
-    next();
-  } catch (error: any) {
-    res.status(401).json({ error: 'Unauthorized', message: 'Invalid or expired token' });
-  }
+  req.user = {
+    id: userId,
+    email: userEmail || '',
+    role: userRole || 'Youth',
+    name: userName || '',
+  };
+  next();
 };

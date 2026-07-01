@@ -6,7 +6,7 @@
 const CONTENT_URL = import.meta.env.VITE_CONTENT_URL || 'http://localhost:3005';
 
 function authHeaders(token: string) {
-  const realToken = sessionStorage.getItem('token') || token;
+  const realToken = sessionStorage.getItem('token') || localStorage.getItem('token') || token;
   return {
     'Content-Type': 'application/json',
     Authorization: `Bearer ${realToken}`,
@@ -15,6 +15,22 @@ function authHeaders(token: string) {
 
 // ─── Posts API ────────────────────────────────────────────────
 export async function getFeed(token: string, page = 1, limit = 20, category = '', sort = 'newest') {
+  const FEED_URL = import.meta.env.VITE_FEED_SERVICE_URL || 'http://localhost:3009';
+  
+  if (!category) {
+    try {
+      const res = await fetch(`${FEED_URL}/api/feed/personalized?page=${page}&limit=${limit}`, {
+        headers: authHeaders(token),
+      });
+      if (res.ok) {
+        return await res.json();
+      }
+      console.warn(`Feed service returned ${res.status}, falling back to content service.`);
+    } catch (err) {
+      console.warn('Feed service offline or failed, falling back to content service:', err);
+    }
+  }
+
   let url = `${CONTENT_URL}/api/content/posts/feed?page=${page}&limit=${limit}&sort=${sort}`;
   if (category) url += `&category=${category}`;
   const res = await fetch(url, { headers: authHeaders(token) });
@@ -22,7 +38,7 @@ export async function getFeed(token: string, page = 1, limit = 20, category = ''
   return res.json();
 }
 
-export async function createTextPost(token: string, body: { title?: string; content: string; category?: string; tags?: string[] }) {
+export async function createTextPost(token: string, body: { title?: string; content: string; category?: string; categories?: string[]; tags?: string[] }) {
   const res = await fetch(`${CONTENT_URL}/api/content/posts/text`, {
     method: 'POST',
     headers: authHeaders(token),
@@ -32,17 +48,20 @@ export async function createTextPost(token: string, body: { title?: string; cont
   return res.json();
 }
 
-export async function createMediaPost(token: string, file: File, body: { title?: string; content?: string; category?: string; tags?: string }) {
+export async function createMediaPost(token: string, files: File[], body: { title?: string; content?: string; category?: string; categories?: string[]; tags?: string }) {
   const formData = new FormData();
-  formData.append('file', file);
+  files.forEach(file => formData.append('file', file));
   if (body.title) formData.append('title', body.title);
   if (body.content) formData.append('content', body.content);
   if (body.category) formData.append('category', body.category);
+  if (body.categories) {
+    formData.append('categories', JSON.stringify(body.categories));
+  }
   if (body.tags) formData.append('tags', body.tags);
 
   const res = await fetch(`${CONTENT_URL}/api/content/posts/media`, {
     method: 'POST',
-    headers: { Authorization: `Bearer ${sessionStorage.getItem('token') || token}` },
+    headers: { Authorization: `Bearer ${sessionStorage.getItem('token') || localStorage.getItem('token') || token}` },
     body: formData,
   });
   if (!res.ok) throw new Error(`createMediaPost failed: ${res.status}`);
@@ -147,7 +166,7 @@ export async function uploadStory(token: string, file: Blob, body: { title: stri
 
   const res = await fetch(`${CONTENT_URL}/api/content/stories/upload`, {
     method: 'POST',
-    headers: { Authorization: `Bearer ${sessionStorage.getItem('token') || token}` },
+    headers: { Authorization: `Bearer ${sessionStorage.getItem('token') || localStorage.getItem('token') || token}` },
     body: formData,
   });
   if (!res.ok) throw new Error(`uploadStory failed: ${res.status}`);
@@ -165,8 +184,8 @@ export async function getStories(token: string, page = 1, limit = 20, category =
   return res.json();
 }
 
-export async function getStoryDetails(token: string, storyId: string) {
-  const res = await fetch(`${CONTENT_URL}/api/content/stories/${storyId}`, { headers: authHeaders(token) });
+export async function getStoryDetails(token: string, storyId: string, incrementView = true) {
+  const res = await fetch(`${CONTENT_URL}/api/content/stories/${storyId}${incrementView ? '' : '?incrementView=false'}`, { headers: authHeaders(token) });
   if (!res.ok) throw new Error(`getStoryDetails failed: ${res.status}`);
   return res.json();
 }
@@ -237,9 +256,28 @@ export async function searchArticles(token: string, q: string, category = '', la
   return res.json();
 }
 
-export async function getArticleDetails(token: string, knowledgeId: string) {
-  const res = await fetch(`${CONTENT_URL}/api/content/knowledge/${knowledgeId}`, { headers: authHeaders(token) });
+export async function getArticleDetails(token: string, knowledgeId: string, incrementView = true) {
+  const res = await fetch(`${CONTENT_URL}/api/content/knowledge/${knowledgeId}${incrementView ? '' : '?incrementView=false'}`, { headers: authHeaders(token) });
   if (!res.ok) throw new Error(`getArticleDetails failed: ${res.status}`);
+  return res.json();
+}
+
+export async function addArticleComment(token: string, knowledgeId: string, text: string) {
+  const res = await fetch(`${CONTENT_URL}/api/content/knowledge/${knowledgeId}/comments`, {
+    method: 'POST',
+    headers: authHeaders(token),
+    body: JSON.stringify({ text }),
+  });
+  if (!res.ok) throw new Error(`addArticleComment failed: ${res.status}`);
+  return res.json();
+}
+
+export async function deleteArticleComment(token: string, knowledgeId: string, commentId: string) {
+  const res = await fetch(`${CONTENT_URL}/api/content/knowledge/${knowledgeId}/comments/${commentId}`, {
+    method: 'DELETE',
+    headers: authHeaders(token),
+  });
+  if (!res.ok) throw new Error(`deleteArticleComment failed: ${res.status}`);
   return res.json();
 }
 
@@ -263,7 +301,7 @@ export async function createArticle(token: string, file: File | null, body: { ti
 
   const res = await fetch(`${CONTENT_URL}/api/content/knowledge`, {
     method: 'POST',
-    headers: { Authorization: `Bearer ${sessionStorage.getItem('token') || token}` },
+    headers: { Authorization: `Bearer ${sessionStorage.getItem('token') || localStorage.getItem('token') || token}` },
     body: formData,
   });
   if (!res.ok) throw new Error(`createArticle failed: ${res.status}`);
@@ -353,9 +391,91 @@ export async function createAdminUser(token: string, body: { email: string; pass
   return res.json();
 }
 
+export async function translateTranscript(token: string, storyId: string, targetLanguage: 'en' | 'fr') {
+  const res = await fetch(`${CONTENT_URL}/api/content/stories/${storyId}/translate`, {
+    method: 'POST',
+    headers: authHeaders(token),
+    body: JSON.stringify({ targetLanguage }),
+  });
+  if (!res.ok) throw new Error(`translateTranscript failed: ${res.status}`);
+  return res.json();
+}
+
 export function resolveContentUrl(url: string): string {
   if (!url) return '';
   if (url.startsWith('http')) return url;
   return `${CONTENT_URL}${url.startsWith('/') ? '' : '/'}${url}`;
+}
+
+export async function getPost(token: string, postId: string, incrementView = true) {
+  const res = await fetch(`${CONTENT_URL}/api/content/posts/${postId}${incrementView ? '' : '?incrementView=false'}`, {
+    headers: authHeaders(token),
+  });
+  if (!res.ok) throw new Error(`getPost failed: ${res.status}`);
+  return res.json();
+}
+
+export async function getAllUsersList(token: string) {
+  const res = await fetch(`http://localhost:3006/api/users`, {
+    headers: authHeaders(token),
+  });
+  if (!res.ok) throw new Error(`getAllUsersList failed: ${res.status}`);
+  return res.json();
+}
+
+export async function updateUserStatus(token: string, userId: string, status: 'Active' | 'Suspended' | 'Banned', reason?: string) {
+  const res = await fetch(`http://localhost:3006/api/users/${userId}/status`, {
+    method: 'PUT',
+    headers: authHeaders(token),
+    body: JSON.stringify({ status, reason }),
+  });
+  if (!res.ok) throw new Error(`updateUserStatus failed: ${res.status}`);
+  return res.json();
+}
+
+export async function updateUserRole(token: string, userId: string, role: 'Elder' | 'Youth' | 'Admin') {
+  const res = await fetch(`http://localhost:3006/api/users/${userId}/role`, {
+    method: 'PUT',
+    headers: authHeaders(token),
+    body: JSON.stringify({ role }),
+  });
+  if (!res.ok) throw new Error(`updateUserRole failed: ${res.status}`);
+  return res.json();
+}
+
+export async function getFlaggedPosts(token: string, page = 1, limit = 20) {
+  const res = await fetch(`${CONTENT_URL}/api/content/moderation/flagged?page=${page}&limit=${limit}`, {
+    headers: authHeaders(token),
+  });
+  if (!res.ok) throw new Error(`getFlaggedPosts failed: ${res.status}`);
+  return res.json();
+}
+
+export async function hidePost(token: string, postId: string, isPublished: boolean) {
+  const res = await fetch(`${CONTENT_URL}/api/content/moderation/posts/${postId}/hide`, {
+    method: 'PUT',
+    headers: authHeaders(token),
+    body: JSON.stringify({ isPublished }),
+  });
+  if (!res.ok) throw new Error(`hidePost failed: ${res.status}`);
+  return res.json();
+}
+
+export async function getAuditLogs(token: string, page = 1, limit = 20) {
+  const res = await fetch(`${CONTENT_URL}/api/content/moderation/audit-log?page=${page}&limit=${limit}`, {
+    headers: authHeaders(token),
+  });
+  if (!res.ok) throw new Error(`getAuditLogs failed: ${res.status}`);
+  return res.json();
+}
+
+export async function banUser(token: string, userIdToBan: string, reason: string) {
+  const res = await fetch(`${CONTENT_URL}/api/content/moderation/ban`, {
+    method: 'POST',
+    headers: authHeaders(token),
+    body: JSON.stringify({ userIdToBan, reason }),
+  });
+  if (!res.ok) throw new Error(`banUser failed: ${res.status}`);
+  return res.json();
 }
 

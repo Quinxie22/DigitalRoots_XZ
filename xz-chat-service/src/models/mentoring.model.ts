@@ -37,4 +37,3 @@ const mentoringPairSchema = new Schema<IMentoringPair>(
 );
 
 export const MentoringPair = model<IMentoringPair>('MentoringPair', mentoringPairSchema);
-

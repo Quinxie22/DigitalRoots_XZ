@@ -11,8 +11,8 @@ router.get('/', verifyToken, cacheMiddleware(300, 'knowledge-list'), KnowledgeCo
 router.get('/search', verifyToken, cacheMiddleware(600, 'knowledge-search'), KnowledgeController.searchArticles);
 router.get('/bookmarks', verifyToken, KnowledgeController.getBookmarks);
 
-// Single article cached for 1 hour
-router.get('/:knowledgeId', verifyToken, cacheMiddleware(3600, 'knowledge-single'), KnowledgeController.getArticle);
+// Single article
+router.get('/:knowledgeId', verifyToken, KnowledgeController.getArticle);
 
 router.post('/', verifyToken, handleSingleUpload('file'), validateArticleCreate, KnowledgeController.createArticle);
 router.put('/:knowledgeId', verifyToken, handleSingleUpload('file'), validateArticleCreate, KnowledgeController.editArticle);
@@ -23,6 +23,10 @@ router.delete('/:knowledgeId/like', verifyToken, KnowledgeController.unlikeArtic
 
 router.post('/:knowledgeId/bookmark', verifyToken, KnowledgeController.bookmarkArticle);
 router.delete('/:knowledgeId/bookmark', verifyToken, KnowledgeController.unbookmarkArticle);
+
+// Article Comments routes
+router.post('/:knowledgeId/comments', verifyToken, KnowledgeController.addComment);
+router.delete('/:knowledgeId/comments/:commentId', verifyToken, KnowledgeController.deleteComment);
 
 // Admin-only endpoints
 router.put('/:knowledgeId/publish', verifyToken, requireRole(['Admin']), KnowledgeController.publishArticle);

@@ -13,7 +13,7 @@
 //   - Shows unread message count badges per thread.
 // ─────────────────────────────────────────────────────────────────────────────
 import { useEffect, useState, useCallback } from 'react';
-import { Search, MessageSquare, Video } from 'lucide-react';
+import { Search, MessageSquare, Video, Plus, X } from 'lucide-react';
 import type { User, Thread } from '../types';
 import { getThreads, getOrCreateThread, resolveMediaUrl } from '../api';
 import { socket } from '../socket';
@@ -108,10 +108,12 @@ export default function Sidebar({ currentUser, selectedThreadId, onSelectThread,
   const [search, setSearch]         = useState('');
   const [loading, setLoading]       = useState(true);
   const [newTopic, setNewTopic]     = useState('');
+  const [topicError, setTopicError] = useState(false);
+  const [imgError, setImgError] = useState<Record<string, boolean>>({});
 
   const load = useCallback(async () => {
     try {
-      const token = sessionStorage.getItem('token');
+      const token = sessionStorage.getItem('token') || localStorage.getItem('token');
       if (token) {
         const userServiceUrl = import.meta.env.VITE_USER_SERVICE_URL || 'http://localhost:3006';
         const usersRes = await fetch(`${userServiceUrl}/api/users`, {
@@ -165,10 +167,33 @@ export default function Sidebar({ currentUser, selectedThreadId, onSelectThread,
     }
   };
 
-  const filtered = threads.filter((t) => {
-    const other = getOtherParticipant(t, currentUser.id);
-    return other.name.toLowerCase().includes(search.toLowerCase());
-  });
+  const filtered = threads
+    .filter((t) => {
+      const other = getOtherParticipant(t, currentUser.id);
+      const q = search.toLowerCase().trim();
+
+      // When there's no search query, hide threads with no messages
+      // (ghost threads created by viewing a profile without ever messaging)
+      if (!q && !t.lastMessage?.content) return false;
+
+      if (!q) return true;
+
+      // Search across: contact name, last message text, discussion topic
+      const nameMatch = other.name.toLowerCase().includes(q);
+      const messageMatch = (t.lastMessage?.content || '').toLowerCase().includes(q);
+      const topicMatch = (t.discussionTopic || '').toLowerCase().includes(q);
+
+      return nameMatch || messageMatch || topicMatch;
+    })
+    // Re-sort by lastMessage.sentAt — NOT by updatedAt.
+    // Mongoose timestamps:true always sets updatedAt=now on Thread.create(),
+    // so the backend's sort order is wrong for empty threads.
+    // Threads with no messages get epoch(0) and always stay at the bottom.
+    .sort((a, b) => {
+      const aTime = a.lastMessage?.sentAt ? new Date(a.lastMessage.sentAt).getTime() : 0;
+      const bTime = b.lastMessage?.sentAt ? new Date(b.lastMessage.sentAt).getTime() : 0;
+      return bTime - aTime;
+    });
 
   const myInfo = getUserInfo(currentUser.id);
 
@@ -178,9 +203,19 @@ export default function Sidebar({ currentUser, selectedThreadId, onSelectThread,
 
       {/* Header */}
       <div className="p-5 flex flex-col gap-4">
-        <h2 className="text-2xl font-bold font-sans tracking-tight" style={{ color: 'var(--text-primary)' }}>
-          Conversations
-        </h2>
+        <div className="flex items-center justify-between">
+          <h2 className="text-2xl font-bold font-sans tracking-tight" style={{ color: 'var(--text-primary)' }}>
+            Conversations
+          </h2>
+          <button
+            onClick={() => setShowNewChat(!showNewChat)}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-white font-bold text-xs transition-all hover:scale-105 active:scale-95 cursor-pointer shadow-sm md:hidden"
+            style={{ background: 'var(--primary)' }}
+          >
+            <Plus size={14} />
+            Connection
+          </button>
+        </div>
 
         {/* Search */}
         <div className="relative">
@@ -188,7 +223,7 @@ export default function Sidebar({ currentUser, selectedThreadId, onSelectThread,
                   style={{ color: 'var(--text-muted)' }} />
           <input
             type="text"
-            placeholder="Search wisdom..."
+            placeholder="Search conversations..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="w-full pl-10 pr-3.5 py-2.5 text-xs rounded-xl outline-none"
@@ -202,56 +237,93 @@ export default function Sidebar({ currentUser, selectedThreadId, onSelectThread,
       </div>
 
       {/* New Chat Panel */}
-      {showNewChat && (
-        <div className="p-3 animate-fade-in" style={{ borderBottom: '1px solid var(--border)', background: 'var(--bg-elevated)' }}>
-          <p className="text-xs font-semibold mb-2" style={{ color: 'var(--text-muted)' }}>START A CONVERSATION</p>
-          <div className="mb-3">
-            <label className="text-[10px] uppercase font-bold text-stone-500 dark:text-stone-400 block mb-1">Discussion Topic (Optional)</label>
-            <input 
-              type="text" 
-              placeholder="e.g. History session, recipes..." 
-              value={newTopic} 
-              onChange={(e) => setNewTopic(e.target.value)}
-              className="w-full px-3 py-2 text-xs rounded-xl border outline-none"
-              style={{
-                background: 'var(--bg-card)',
-                borderColor: 'var(--border)',
-                color: 'var(--text-primary)',
-              }}
-            />
-          </div>
-          <div className="space-y-1">
-            {(() => {
-            const usersJson = sessionStorage.getItem('users_list');
-            const list: any[] = usersJson ? JSON.parse(usersJson) : [];
-            const mapped = list.map((u: any) => getUserInfo(u._id || u.id));
-            return mapped.filter((u) => u.id !== currentUser.id && u.role !== 'Admin').map((u) => (
-              <button
-                key={u.id}
-                onClick={() => startNewChat(u.id)}
-                className="w-full flex items-center gap-3 p-2 rounded-xl text-left transition-colors hover:bg-opacity-80 mb-1"
-                style={{ background: 'var(--bg-card)' }}>
-                <div className="relative" onClick={(e) => { e.stopPropagation(); onViewProfile?.(u.id); }}>
-                  <div className={`w-8 h-8 rounded-xl flex items-center justify-center text-xs font-bold text-white bg-gradient-to-br cursor-pointer overflow-hidden ${u.color}`}>
-                    {u.avatar && (u.avatar.startsWith('http') || u.avatar.startsWith('/') || u.avatar.includes('.')) ? (
-                      <img src={resolveMediaUrl(u.avatar)} alt={u.name} className="w-full h-full object-cover" />
-                    ) : (
-                      u.initials
-                    )}
-                  </div>
-                  <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2"
-                        style={{
-                          background: onlineUsers.includes(u.id) ? 'var(--online)' : '#6b7280',
-                          borderColor: 'var(--bg-card)',
-                        }} />
-                </div>
-                <span className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{u.name}</span>
+      <div className="relative z-30">
+        {showNewChat && (
+          <div className="absolute left-0 right-0 top-0 z-30 p-3 animate-fade-in shadow-xl border-b" style={{ borderColor: 'var(--border)', background: 'var(--bg-elevated)' }}>
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-xs font-semibold" style={{ color: 'var(--text-muted)' }}>START A CONVERSATION</p>
+              <button 
+                onClick={() => { setShowNewChat(false); setNewTopic(''); setTopicError(false); }} 
+                className="text-stone-400 hover:text-stone-200 transition-colors cursor-pointer"
+                title="Cancel"
+              >
+                <X size={14} />
               </button>
-            ));
-          })()}
+            </div>
+            <div className="mb-3">
+              <label className="text-[10px] uppercase font-bold text-stone-500 dark:text-stone-400 block mb-1">Discussion Topic (Required)</label>
+              <input 
+                type="text" 
+                placeholder="e.g. History session, recipes..." 
+                value={newTopic} 
+                onChange={(e) => {
+                  setNewTopic(e.target.value);
+                  setTopicError(false);
+                }}
+                className={`w-full px-3 py-2 text-xs rounded-xl border outline-none ${
+                  topicError ? 'border-red-500 bg-red-500/5' : ''
+                }`}
+                style={{
+                  background: 'var(--bg-card)',
+                  borderColor: topicError ? undefined : 'var(--border)',
+                  color: 'var(--text-primary)',
+                }}
+              />
+              {topicError && (
+                <span className="text-[9px] text-red-500 mt-1 block">A discussion topic is required to start a connection.</span>
+              )}
+            </div>
+
+            <div className="space-y-1 max-h-48 overflow-y-auto pr-1">
+              {(() => {
+                const usersJson = localStorage.getItem('users_list') || sessionStorage.getItem('users_list');
+                const list: any[] = usersJson ? JSON.parse(usersJson) : [];
+                const mapped = list.map((u: any) => getUserInfo(u._id || u.id));
+                const filteredList = mapped.filter((u) => u.id !== currentUser.id && u.role !== 'Admin');
+
+                if (filteredList.length === 0) {
+                  return <p className="text-[11px] text-stone-550 text-center py-4 italic">No available connections found.</p>;
+                }
+
+                return filteredList.map((u) => (
+                  <button
+                    key={u.id}
+                    onClick={() => {
+                      if (!newTopic.trim()) {
+                        setTopicError(true);
+                        return;
+                      }
+                      startNewChat(u.id);
+                    }}
+                    className="w-full flex items-center gap-3 p-2 rounded-xl text-left transition-colors hover:bg-opacity-80 mb-1"
+                    style={{ background: 'var(--bg-card)' }}>
+                    <div className="relative" onClick={(e) => { e.stopPropagation(); onViewProfile?.(u.id); }}>
+                      <div className={`w-8 h-8 rounded-xl flex items-center justify-center text-xs font-bold text-white bg-gradient-to-br cursor-pointer overflow-hidden ${u.color}`}>
+                        {u.avatar && !imgError[u.id] && (u.avatar.startsWith('http') || u.avatar.startsWith('/') || u.avatar.includes('.')) ? (
+                          <img 
+                            src={resolveMediaUrl(u.avatar)} 
+                            alt={u.name} 
+                            className="w-full h-full object-cover" 
+                            onError={() => setImgError(prev => ({ ...prev, [u.id]: true }))}
+                          />
+                        ) : (
+                          u.initials
+                        )}
+                      </div>
+                      <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2"
+                            style={{
+                              background: onlineUsers.includes(u.id) ? 'var(--online)' : '#6b7280',
+                              borderColor: 'var(--bg-card)',
+                            }} />
+                    </div>
+                    <span className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{u.name}</span>
+                  </button>
+                ));
+              })()}
+            </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
       {/* Thread List */}
       <div className="flex-1 overflow-y-auto">
@@ -284,8 +356,12 @@ export default function Sidebar({ currentUser, selectedThreadId, onSelectThread,
               const other = getOtherParticipant(thread, currentUser.id);
               const isSelected = thread.threadId === selectedThreadId;
               const isOnline = onlineUsers.includes(other.id);
-              const timeStr = thread.updatedAt
-                ? new Date(thread.updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+              // Use lastMessage.sentAt — NOT thread.updatedAt, because Mongoose's
+              // timestamps:true always sets updatedAt=now on create, causing empty
+              // threads to show the current time even with no messages sent.
+              const lastSentAt = thread.lastMessage?.sentAt;
+              const timeStr = lastSentAt
+                ? new Date(lastSentAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
                 : '';
               const unread = thread.unreadCount?.[currentUser.id] || 0;
 
@@ -308,8 +384,13 @@ export default function Sidebar({ currentUser, selectedThreadId, onSelectThread,
                   {/* Avatar */}
                   <div className="relative flex-shrink-0" onClick={(e) => { e.stopPropagation(); onViewProfile?.(other.id); }}>
                     <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-xs font-bold text-white bg-gradient-to-br cursor-pointer overflow-hidden ${other.color}`}>
-                      {other.avatar && (other.avatar.startsWith('http') || other.avatar.startsWith('/') || other.avatar.includes('.')) ? (
-                        <img src={resolveMediaUrl(other.avatar)} alt={other.name} className="w-full h-full object-cover" />
+                      {other.avatar && !imgError[other.id] && (other.avatar.startsWith('http') || other.avatar.startsWith('/') || other.avatar.includes('.')) ? (
+                        <img 
+                          src={resolveMediaUrl(other.avatar)} 
+                          alt={other.name} 
+                          className="w-full h-full object-cover" 
+                          onError={() => setImgError(prev => ({ ...prev, [other.id]: true }))}
+                        />
                       ) : (
                         other.initials
                       )}
@@ -374,8 +455,13 @@ export default function Sidebar({ currentUser, selectedThreadId, onSelectThread,
            onClick={() => onViewProfile?.(currentUser.id)}>
         <div className="relative flex-shrink-0">
           <div className={`w-8 h-8 rounded-xl flex items-center justify-center text-xs font-bold text-white flex-shrink-0 bg-gradient-to-br overflow-hidden ${myInfo.color}`}>
-            {myInfo.avatar && (myInfo.avatar.startsWith('http') || myInfo.avatar.startsWith('/') || myInfo.avatar.includes('.')) ? (
-              <img src={resolveMediaUrl(myInfo.avatar)} alt={myInfo.name} className="w-full h-full object-cover" />
+            {myInfo.avatar && !imgError[myInfo.id] && (myInfo.avatar.startsWith('http') || myInfo.avatar.startsWith('/') || myInfo.avatar.includes('.')) ? (
+              <img 
+                src={resolveMediaUrl(myInfo.avatar)} 
+                alt={myInfo.name} 
+                className="w-full h-full object-cover" 
+                onError={() => setImgError(prev => ({ ...prev, [myInfo.id]: true }))}
+              />
             ) : (
               myInfo.initials
             )}

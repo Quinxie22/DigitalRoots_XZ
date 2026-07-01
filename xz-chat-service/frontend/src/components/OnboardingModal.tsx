@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { User } from '../types';
 import { Loader, Globe, Check } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 interface OnboardingModalProps {
   currentUser: User;
@@ -9,14 +10,15 @@ interface OnboardingModalProps {
 }
 
 const CATEGORIES = [
-  'Cultural', 'Educational', 'Technical', 'Traditional',
-  'Health', 'Sports', 'Travel', 'Music', 'Arts', 'Tech',
-  'Business', 'News', 'Environment'
+  'Cultural', 'Traditional', 'History', 'Educational', 'Tech',
+  'Career', 'Business', 'Finance', 'Health', 'Sports',
+  'Travel', 'Music', 'Arts', 'Community', 'Environment'
 ];
 
 const USER_SERVICE_URL = import.meta.env.VITE_USER_SERVICE_URL || 'http://localhost:3006';
 
 export default function OnboardingModal({ currentUser, token, onComplete }: OnboardingModalProps) {
+  const { t } = useTranslation();
   const [bio, setBio] = useState('');
   const [community, setCommunity] = useState('');
   const [selectedLangs, setSelectedLangs] = useState<string[]>(['English']);
@@ -87,8 +89,8 @@ export default function OnboardingModal({ currentUser, token, onComplete }: Onbo
           <div className="w-12 h-12 rounded-2xl flex items-center justify-center bg-red-100 dark:bg-red-950/40 text-red-500 mb-3">
             <Globe size={24} style={{ color: 'var(--primary)' }} />
           </div>
-          <h3 className="text-xl font-bold font-serif text-stone-850 dark:text-white">Personalize Your Archive</h3>
-          <p className="text-xs text-stone-400 text-center mt-1">Set up your profile and custom preferences before entering</p>
+          <h3 className="text-xl font-bold font-serif text-stone-850 dark:text-white">{t('onboardingTitle')}</h3>
+          <p className="text-xs text-stone-400 text-center mt-1">{t('onboardingDesc')}</p>
         </div>
 
         {error && (
@@ -99,26 +101,26 @@ export default function OnboardingModal({ currentUser, token, onComplete }: Onbo
 
         <form onSubmit={handleSubmit} className="space-y-5">
           <div className="flex flex-col gap-1.5 text-left">
-            <label className="text-[10px] uppercase font-extrabold tracking-wider text-stone-400">Short Bio</label>
+            <label className="text-[10px] uppercase font-extrabold tracking-wider text-stone-400">{t('onboardingBioLabel')}</label>
             <textarea
               value={bio}
               onChange={(e) => setBio(e.target.value)}
               rows={2}
               required
-              placeholder="e.g. Storyteller sharing regional folklore and history..."
+              placeholder={t('onboardingBioPlaceholder')}
               className="px-4 py-2.5 rounded-xl border outline-none text-xs bg-[var(--bg-elevated)] w-full resize-none text-stone-850 dark:text-white"
               style={{ borderColor: 'var(--border)' }}
             />
           </div>
 
           <div className="flex flex-col gap-1.5 text-left">
-            <label className="text-[10px] uppercase font-extrabold tracking-wider text-stone-400">Cultural Origin / Community</label>
+            <label className="text-[10px] uppercase font-extrabold tracking-wider text-stone-400">{t('onboardingCommunityLabel')}</label>
             <input
               type="text"
               value={community}
               onChange={(e) => setCommunity(e.target.value)}
               required
-              placeholder="e.g. Sawa community, Coastal origin..."
+              placeholder={t('onboardingCommunityPlaceholder')}
               className="px-4 py-2.5 rounded-xl border outline-none text-xs bg-[var(--bg-elevated)] w-full text-stone-850 dark:text-white"
               style={{ borderColor: 'var(--border)' }}
             />
@@ -126,7 +128,7 @@ export default function OnboardingModal({ currentUser, token, onComplete }: Onbo
 
           {/* Languages selection (restricted to English and French) */}
           <div className="flex flex-col gap-1.5 text-left">
-            <label className="text-[10px] uppercase font-extrabold tracking-wider text-stone-400">Spoken Languages</label>
+            <label className="text-[10px] uppercase font-extrabold tracking-wider text-stone-400">{t('onboardingLanguagesLabel')}</label>
             <div className="flex gap-3 mt-1">
               {['English', 'French'].map(lang => {
                 const isSelected = selectedLangs.includes(lang);
@@ -141,7 +143,7 @@ export default function OnboardingModal({ currentUser, token, onComplete }: Onbo
                     style={{ borderColor: isSelected ? 'var(--primary)' : 'var(--border)' }}
                   >
                     {isSelected && <Check size={14} />}
-                    {lang}
+                    {lang === 'English' ? t('english') : t('french')}
                   </button>
                 );
               })}
@@ -150,7 +152,7 @@ export default function OnboardingModal({ currentUser, token, onComplete }: Onbo
 
           {/* Categories select chips grid */}
           <div className="flex flex-col gap-1.5 text-left">
-            <label className="text-[10px] uppercase font-extrabold tracking-wider text-stone-400">Interests & Content Preferences</label>
+            <label className="text-[10px] uppercase font-extrabold tracking-wider text-stone-400">{t('onboardingInterestsLabel')}</label>
             <div className="flex flex-wrap gap-2 mt-1">
               {CATEGORIES.map(cat => {
                 const isSelected = selectedCats.includes(cat);
@@ -160,11 +162,11 @@ export default function OnboardingModal({ currentUser, token, onComplete }: Onbo
                     type="button"
                     onClick={() => toggleCategory(cat)}
                     className={`text-[11px] px-3.5 py-1.5 rounded-full border transition-all ${
-                      isSelected ? 'bg-red-500/10 text-red-500 border-red-500/30 font-bold' : 'bg-transparent text-stone-400'
+                      isSelected ? 'bg-red-500/10 text-red-500 border-red-500/30 font-bold' : 'bg-transparent text-stone-450'
                     }`}
                     style={{ borderColor: isSelected ? 'var(--primary)' : 'var(--border)' }}
                   >
-                    {cat}
+                    {t('cat_' + cat, cat)}
                   </button>
                 );
               })}
@@ -180,10 +182,10 @@ export default function OnboardingModal({ currentUser, token, onComplete }: Onbo
             {saving ? (
               <>
                 <Loader className="animate-spin" size={14} />
-                <span>Saving Preferences...</span>
+                <span>{t('savingProfile')}</span>
               </>
             ) : (
-              <span>Save & Continue</span>
+              <span>{t('onboardingSubmit')}</span>
             )}
           </button>
         </form>

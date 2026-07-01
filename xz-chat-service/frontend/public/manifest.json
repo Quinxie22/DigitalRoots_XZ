@@ -1,0 +1,24 @@
+{
+  "short_name": "DigitalRoots",
+  "name": "Digital Roots - Bridging generations Platform",
+  "description": "Preserve and share cultural history, oral archives, and language heritage.",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "type": "image/svg+xml",
+      "sizes": "any",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/logo.svg",
+      "type": "image/svg+xml",
+      "sizes": "512x512",
+      "purpose": "any maskable"
+    }
+  ],
+  "start_url": "/",
+  "background_color": "#1c1917",
+  "theme_color": "#78716c",
+  "display": "standalone",
+  "orientation": "portrait"
+}

@@ -165,7 +165,7 @@ export class ModerationController {
       
       await clearCachePattern('feed:*');
       await clearCachePattern('stories:*');
-      await clearCachePattern('knowledge:*');
+      await clearCachePattern('knowledge*');
 
       res.status(200).json({
         success: true,

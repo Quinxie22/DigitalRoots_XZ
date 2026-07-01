@@ -33,7 +33,7 @@ export const proposeInterview = async (req: Request, res: Response): Promise<voi
 
     // Trigger notification to the recipient of the proposal
     try {
-      const proposerId = (req as any).user?.id || archivistId;
+      const proposerId = (req as any).user?.firebase_uid || (req as any).user?.id || archivistId;
       const recipientId = proposerId === archivistId ? subjectId : archivistId;
       const proposerName = proposerId === archivistId ? archivistName : subjectName;
       await axios.post(`${NOTIFICATION_SERVICE_URL}/api/notifications`, {
@@ -44,7 +44,7 @@ export const proposeInterview = async (req: Request, res: Response): Promise<voi
         referenceId: interview.interviewId
       });
     } catch (err: any) {
-      console.error('[Session Service] Failed to send proposal notification:', err.message);
+      console.error('[Session Controller] Failed to send proposal notification:', err.message);
     }
 
     res.status(201).json({ success: true, interview });
@@ -68,7 +68,7 @@ export const confirmInterview = async (req: Request, res: Response): Promise<voi
 
     // Trigger notification to the proposer (other party)
     try {
-      const confirmerId = (req as any).user?.id || interview.subjectId;
+      const confirmerId = (req as any).user?.firebase_uid || (req as any).user?.id || interview.subjectId;
       const recipientId = confirmerId === interview.subjectId ? interview.archivistId : interview.subjectId;
       const confirmerName = confirmerId === interview.subjectId ? interview.subjectName : interview.archivistName;
       await axios.post(`${NOTIFICATION_SERVICE_URL}/api/notifications`, {
@@ -79,7 +79,7 @@ export const confirmInterview = async (req: Request, res: Response): Promise<voi
         referenceId: interview.interviewId
       });
     } catch (err: any) {
-      console.error('[Session Service] Failed to send confirm notification:', err.message);
+      console.error('[Session Controller] Failed to send confirm notification:', err.message);
     }
 
     res.status(200).json({ success: true, interview });
@@ -120,7 +120,7 @@ export const completeInterview = async (req: Request, res: Response): Promise<vo
         referenceType: 'interview'
       });
     } catch (err: any) {
-      console.error('[Session Service] Failed to trigger point awards on interview completion:', err.message);
+      console.error('[Session Controller] Failed to trigger point awards on interview completion:', err.message);
     }
 
     res.status(200).json({ success: true, interview });
@@ -137,10 +137,9 @@ export const requestMentoring = async (req: Request, res: Response): Promise<voi
     return;
   }
 
-  const requesterId = requestedById || (req as any).user?.id || menteeId;
+  const requesterId = requestedById || (req as any).user?.firebase_uid || (req as any).user?.id || menteeId;
 
   try {
-    // Check if there is already an active or requested partnership between these two users
     const existingPair = await MentoringPair.findOne({
       $or: [
         { mentorId, menteeId, status: { $ne: 'completed' } },
@@ -182,7 +181,7 @@ export const requestMentoring = async (req: Request, res: Response): Promise<voi
         referenceId: pair.pairingId
       });
     } catch (err: any) {
-      console.error('[Session Service] Failed to send mentoring request notification:', err.message);
+      console.error('[Session Controller] Failed to send mentoring request notification:', err.message);
     }
 
     res.status(201).json({ success: true, pair });
@@ -206,7 +205,7 @@ export const acceptMentoring = async (req: Request, res: Response): Promise<void
 
     // Trigger notification to the requester (sender) of the pairing request
     try {
-      const accepterId = (req as any).user?.id || (pair.requestedById === pair.mentorId ? pair.menteeId : pair.mentorId);
+      const accepterId = (req as any).user?.firebase_uid || (req as any).user?.id || (pair.requestedById === pair.mentorId ? pair.menteeId : pair.mentorId);
       const accepterName = accepterId === pair.mentorId ? pair.mentorName : pair.menteeName;
       await axios.post(`${NOTIFICATION_SERVICE_URL}/api/notifications`, {
         userId: pair.requestedById,
@@ -216,7 +215,7 @@ export const acceptMentoring = async (req: Request, res: Response): Promise<void
         referenceId: pair.pairingId
       });
     } catch (err: any) {
-      console.error('[Session Service] Failed to send mentoring acceptance notification:', err.message);
+      console.error('[Session Controller] Failed to send mentoring acceptance notification:', err.message);
     }
 
     res.status(200).json({ success: true, pair });
@@ -234,39 +233,60 @@ export const getMentoringMatches = async (req: Request, res: Response): Promise<
   }
 
   try {
-    // 1. Get current user's profile to compare preferences
     const profileRes = await axios.get(`${USER_SERVICE_URL}/api/users/profile`, {
-      headers: { Authorization: req.headers.authorization || '' }
+      headers: {
+        Authorization: req.headers.authorization || '',
+        'x-user-id': req.headers['x-user-id'] || '',
+        'x-user-role': req.headers['x-user-role'] || '',
+        'x-user-email': req.headers['x-user-email'] || '',
+        'x-user-name': req.headers['x-user-name'] || ''
+      }
     });
     const currentUser = profileRes.data.user;
 
-    // 2. Fetch all other users
     const allUsersRes = await axios.get(`${USER_SERVICE_URL}/api/users`, {
-      headers: { Authorization: req.headers.authorization || '' }
+      headers: {
+        Authorization: req.headers.authorization || '',
+        'x-user-id': req.headers['x-user-id'] || '',
+        'x-user-role': req.headers['x-user-role'] || '',
+        'x-user-email': req.headers['x-user-email'] || '',
+        'x-user-name': req.headers['x-user-name'] || ''
+      }
     });
     const allUsers: any[] = allUsersRes.data.users || [];
 
-    // 3. Score matching criteria
-    const targetRole = role === 'Elder' ? 'Youth' : 'Elder';
+    const normalizeRole = (r: string): 'Elder' | 'Youth' => {
+      const normalized = (r || '').toLowerCase();
+      if (normalized === 'elder' || normalized === 'arthur' || normalized === 'felix') {
+        return 'Elder';
+      }
+      return 'Youth';
+    };
+
+    const currentNormalizedRole = normalizeRole(role as string);
+    const targetRole = currentNormalizedRole === 'Elder' ? 'Youth' : 'Elder';
+
     const matches = allUsers
-      .filter((u: any) => u._id !== userId && u.role === targetRole)
+      .filter((u: any) => {
+        const uId = (u._id || u.id || '').toString();
+        const curId = (userId || '').toString();
+        if (uId === curId) return false;
+        if (u.role === 'Admin') return false;
+        return normalizeRole(u.role) === targetRole;
+      })
       .map((u: any) => {
         let score = 0;
 
-        // Shared languages (+30 each)
         const commonLangs = (currentUser.languages || []).filter((l: string) => (u.languages || []).includes(l));
         score += commonLangs.length * 30;
 
-        // Shared community (+25)
         if (currentUser.community && u.community && currentUser.community === u.community) {
           score += 25;
         }
 
-        // Shared interest categories (+15 each)
         const commonPrefs = (currentUser.contentPreferences || []).filter((p: string) => (u.contentPreferences || []).includes(p));
         score += commonPrefs.length * 15;
 
-        // Cap score to a maximum of 100%
         score = Math.min(score, 100);
 
         return {
@@ -288,7 +308,7 @@ export const getMentoringMatches = async (req: Request, res: Response): Promise<
 
     res.status(200).json({ success: true, matches });
   } catch (error: any) {
-    console.error('[Session Service] Matches error:', error.message);
+    console.error('[Session Controller] Matches error:', error.message);
     res.status(500).json({ error: 'Internal Server Error', message: error.message });
   }
 };
@@ -321,7 +341,7 @@ export const getMentoringPairs = async (req: Request, res: Response): Promise<vo
 
 export const cancelMentoring = async (req: Request, res: Response): Promise<void> => {
   const { pairingId } = req.params;
-  const requesterId = (req as any).user?.id;
+  const requesterId = (req as any).user?.firebase_uid || (req as any).user?.id;
 
   try {
     const pair = await MentoringPair.findOne({ pairingId });
@@ -335,7 +355,6 @@ export const cancelMentoring = async (req: Request, res: Response): Promise<void
       return;
     }
 
-    // Trigger notification to the other partner if it was active/requested
     try {
       const otherUserId = requesterId === pair.mentorId ? pair.menteeId : pair.mentorId;
       const cancellerName = requesterId === pair.mentorId ? pair.mentorName : pair.menteeName;
@@ -347,7 +366,7 @@ export const cancelMentoring = async (req: Request, res: Response): Promise<void
         referenceId: pairingId
       });
     } catch (err: any) {
-      console.error('[Session Service] Failed to send mentoring cancellation notification:', err.message);
+      console.error('[Session Controller] Failed to send mentoring cancellation notification:', err.message);
     }
 
     await MentoringPair.deleteOne({ pairingId });

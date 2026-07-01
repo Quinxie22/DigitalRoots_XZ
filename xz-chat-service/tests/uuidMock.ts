@@ -1,1 +1,2 @@
-export const v4 = () => 'mock-uuid-12345';
+let count = 0;
+export const v4 = () => `mock-uuid-${++count}`;

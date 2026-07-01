@@ -15,32 +15,53 @@ export const verifyToken = async (
   res: Response,
   next: NextFunction
 ): Promise<void> => {
-  const authHeader = req.headers.authorization;
+  const userId = req.headers['x-user-id'] as string;
+  const userRole = req.headers['x-user-role'] as string;
+  const userEmail = req.headers['x-user-email'] as string;
+  const userName = req.headers['x-user-name'] as string;
 
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+  if (!userId) {
     res.status(401).json({ 
       error: 'Unauthorized', 
-      message: 'Access denied. No token provided. Expected: Bearer <token>' 
+      message: 'Access denied. Missing identity headers from gateway.' 
     });
     return;
   }
 
-  const token = authHeader.split(' ')[1];
-  const secret = process.env.JWT_SECRET || 'xz_jwt_secret_shared_2026_key';
-
   try {
-    const decoded = jwt.verify(token, secret) as any;
+    const { User } = require('../models/user.model');
+    const userDoc = await User.findById(userId);
+    if (!userDoc) {
+      res.status(401).json({ error: 'Unauthorized', message: 'User profile not found' });
+      return;
+    }
+
+    if (userDoc.status === 'Suspended' || userDoc.status === 'Banned') {
+      res.status(403).json({ error: 'Forbidden', message: `Your account is ${userDoc.status}. Please contact an administrator.` });
+      return;
+    }
+
     req.user = {
-      id: decoded.id,
-      email: decoded.email,
-      role: decoded.role,
-      name: decoded.name,
+      id: userId,
+      email: userEmail || userDoc.email,
+      role: userRole || userDoc.role,
+      name: userName || userDoc.name,
     };
     next();
   } catch (error) {
     res.status(401).json({ 
       error: 'Unauthorized', 
-      message: 'Invalid or expired token' 
+      message: 'Failed to verify user profile' 
     });
   }
+};
+
+export const requireRole = (roles: string[]) => {
+  return (req: AuthRequest, res: Response, next: NextFunction) => {
+    if (!req.user || !roles.includes(req.user.role || '')) {
+      res.status(403).json({ error: 'Forbidden', message: 'Insufficient permissions' });
+      return;
+    }
+    next();
+  };
 };

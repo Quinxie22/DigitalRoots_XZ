@@ -36,4 +36,7 @@ router.post('/threads/:threadId/report', ChatController.reportConnection);
 // Generic file upload (profile picture, etc.) — returns URL only
 router.post('/upload', upload.single('file'), ChatController.uploadGenericFile);
 
+// Secure file download proxy to preserve original file names
+router.get('/download', ChatController.downloadFile);
+
 export default router;

@@ -13,42 +13,47 @@ export interface AuthRequest extends Request {
 
 const getJWTSecret = () => process.env.JWT_SECRET || 'xz_jwt_secret_shared_2026_key';
 
-// Middleware to verify JWT from Authorization header
+// Middleware to read identity headers from the API Gateway (or verify JWT locally as a fallback)
 export const verifyToken = async (
   req: AuthRequest,
   res: Response,
   next: NextFunction
 ): Promise<void> => {
-  const authHeader = req.headers.authorization;
-  
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+  let userId = req.headers['x-user-id'] as string;
+  let userRole = req.headers['x-user-role'] as string;
+  let userEmail = req.headers['x-user-email'] as string;
+  let userName = req.headers['x-user-name'] as string;
+
+  // Fallback to local JWT verification (useful for local integration tests)
+  if (!userId && req.headers.authorization && req.headers.authorization.startsWith('Bearer ')) {
+    try {
+      const token = req.headers.authorization.split(' ')[1];
+      const decoded = jwt.verify(token, getJWTSecret()) as any;
+      userId = decoded.id || decoded.firebase_uid || '';
+      userRole = decoded.role || '';
+      userEmail = decoded.email || '';
+      userName = decoded.name || '';
+    } catch (err) {
+      // Ignore verification errors here, they will fail on !userId check below
+    }
+  }
+
+  if (!userId) {
     res.status(401).json({ 
       error: 'Unauthorized', 
-      message: 'No token provided or invalid format. Use: Bearer <jwt_token>' 
+      message: 'Access denied. Missing identity headers from gateway or invalid token.' 
     });
     return;
   }
 
-  const token = authHeader.split('Bearer ')[1];
-
-  try {
-    const decodedToken = jwt.verify(token, getJWTSecret()) as any;
-    
-    req.user = {
-      firebase_uid: decodedToken.id,
-      email: decodedToken.email || '',
-      role: decodedToken.role || 'Youth',
-      name: decodedToken.name || '',
-    };
-    
-    next();
-  } catch (error: any) {
-    logger.error(`Token verification failed: ${error.message}`);
-    res.status(401).json({ 
-      error: 'Unauthorized', 
-      message: 'Invalid or expired token' 
-    });
-  }
+  req.user = {
+    firebase_uid: userId,
+    email: userEmail || '',
+    role: userRole || 'Youth',
+    name: userName || '',
+  };
+  
+  next();
 };
 
 // Optional: Role-based middleware

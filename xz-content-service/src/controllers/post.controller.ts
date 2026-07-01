@@ -1,4 +1,5 @@
 import { Response } from 'express';
+import mongoose from 'mongoose';
 import { AuthRequest } from '../middleware/auth.middleware';
 import { Post } from '../models/post.model';
 import { FileService, FileCategory } from '../services/file.service';
@@ -11,11 +12,20 @@ export class PostController {
   // Create a text post
   static async createTextPost(req: AuthRequest, res: Response): Promise<void> {
     try {
-      const { title, content, category, tags } = req.body;
+      const { title, content, category, categories, tags } = req.body;
       
       if (!content) {
         res.status(400).json({ success: false, error: 'Content is required' });
         return;
+      }
+
+      let parsedCategories = categories;
+      if (typeof categories === 'string') {
+        try {
+          parsedCategories = JSON.parse(categories);
+        } catch (e) {
+          parsedCategories = [categories];
+        }
       }
       
       const post: any = await Post.create({
@@ -26,7 +36,8 @@ export class PostController {
         type: PostType.TEXT,
         title: title || null,
         content,
-        category: category || ContentCategory.EDUCATIONAL,
+        category: category || (parsedCategories && parsedCategories[0]) || ContentCategory.EDUCATIONAL,
+        categories: parsedCategories || (category ? [category] : [ContentCategory.EDUCATIONAL]),
         tags: tags || [],
         isPublished: true,
       });
@@ -40,38 +51,48 @@ export class PostController {
     }
   }
   
-  // Create a media post (image/video/audio)
+  // Create a media post (image/video/audio) — supports multiple files
   static async createMediaPost(req: AuthRequest, res: Response): Promise<void> {
     try {
-      const { title, content, category, tags } = req.body;
-      const file = req.file;
-      
-      if (!file) {
-        res.status(400).json({ success: false, error: 'File is required' });
+      const { title, content, category, categories, tags } = req.body;
+      const files = (req.files as Express.Multer.File[]) || [];
+
+      if (files.length === 0) {
+        res.status(400).json({ success: false, error: 'At least one file is required' });
         return;
       }
-      
-      const fileCategory = FileService.getFileCategory(file.mimetype);
-      if (!fileCategory) {
+
+      // Validate and determine type from first file
+      const firstCategory = FileService.getFileCategory(files[0].mimetype);
+      if (!firstCategory) {
         res.status(400).json({ success: false, error: 'Unsupported file type' });
         return;
       }
-      
+
       let postType: PostType;
-      switch (fileCategory) {
+      switch (firstCategory) {
         case FileCategory.IMAGE: postType = PostType.IMAGE; break;
         case FileCategory.VIDEO: postType = PostType.VIDEO; break;
         case FileCategory.AUDIO: postType = PostType.AUDIO; break;
         default: postType = PostType.TEXT;
       }
-      
-      const { url, thumbnailUrl, metadata } = await FileService.uploadFile(
-        file.buffer,
-        file.originalname,
-        fileCategory,
-        'posts'
+
+      // Upload all files in parallel
+      const uploadResults = await Promise.all(
+        files.map(file => {
+          const fileCategory = FileService.getFileCategory(file.mimetype) || firstCategory;
+          return FileService.uploadFile(file.buffer, file.originalname, fileCategory, 'posts');
+        })
       );
-      
+
+      const mediaUrls = uploadResults.map(r => r.url);
+      const { url: mediaUrl, thumbnailUrl, metadata } = uploadResults[0];
+
+      let parsedCategories = categories;
+      if (typeof categories === 'string') {
+        try { parsedCategories = JSON.parse(categories); } catch { parsedCategories = [categories]; }
+      }
+
       const post: any = await Post.create({
         postId: uuidv4(),
         authorId: req.user!.firebase_uid,
@@ -79,15 +100,17 @@ export class PostController {
         authorName: req.user!.name || req.user!.email,
         type: postType,
         title: title || null,
-        content: content || `Shared a ${postType}`,
-        mediaUrl: url,
+        content: content || `Shared ${files.length > 1 ? `${files.length} files` : `a ${postType}`}`,
+        mediaUrl,
+        mediaUrls,
         thumbnailUrl,
-        fileMetadata: { ...metadata, fileName: file.originalname, fileSize: file.size, mimeType: file.mimetype },
-        category: category || ContentCategory.CULTURAL,
+        fileMetadata: { ...metadata, fileName: files[0].originalname, fileSize: files[0].size, mimeType: files[0].mimetype },
+        category: category || (parsedCategories && parsedCategories[0]) || ContentCategory.CULTURAL,
+        categories: parsedCategories || (category ? [category] : [ContentCategory.CULTURAL]),
         tags: tags || [],
         isPublished: true,
       });
-      
+
       await clearCachePattern('feed:*');
       res.status(201).json({ success: true, post });
     } catch (error: any) {
@@ -105,7 +128,12 @@ export class PostController {
       const sort = req.query.sort as string; // 'newest' or 'oldest'
 
       const query: any = { isPublished: true, isFlagged: false };
-      if (category) query.category = category;
+      if (category) {
+        query.$or = [
+          { category: category },
+          { categories: category }
+        ];
+      }
       
       const sortDir = sort === 'oldest' ? 1 : -1;
       
@@ -138,7 +166,10 @@ export class PostController {
       }
       
       // Increment view count
-      await Post.updateOne({ postId }, { $inc: { views: 1 } });
+      if (req.query.incrementView !== 'false') {
+        await Post.updateOne({ postId }, { $inc: { views: 1 } });
+        post.views += 1;
+      }
       
       res.status(200).json({ success: true, post });
     } catch (error: any) {
@@ -150,7 +181,7 @@ export class PostController {
   static async editPost(req: AuthRequest, res: Response): Promise<void> {
     try {
       const { postId } = req.params;
-      const { title, content, category, tags } = req.body;
+      const { title, content, category, categories, tags } = req.body;
 
       const post = await Post.findOne({ postId });
       if (!post) {
@@ -168,6 +199,17 @@ export class PostController {
       if (title !== undefined) updates.title = title;
       if (content !== undefined) updates.content = content;
       if (category !== undefined) updates.category = category;
+      if (categories !== undefined) {
+        let parsedCategories = categories;
+        if (typeof categories === 'string') {
+          try {
+            parsedCategories = JSON.parse(categories);
+          } catch (e) {
+            parsedCategories = [categories];
+          }
+        }
+        updates.categories = parsedCategories;
+      }
       if (tags !== undefined) updates.tags = tags;
 
       // Also support thumbnail update if client uploads/updates thumbnail
@@ -253,6 +295,7 @@ export class PostController {
       });
       
       await post.save();
+      await clearCachePattern('feed:*');
       
       res.status(201).json({ success: true, comment: post.comments[post.comments.length - 1] });
     } catch (error: any) {
@@ -290,7 +333,8 @@ export class PostController {
 
       post.comments.splice(commentIndex, 1);
       await post.save();
-
+      await clearCachePattern('feed:*');
+      
       res.status(200).json({ success: true, message: 'Comment deleted successfully' });
     } catch (error: any) {
       res.status(500).json({ success: false, error: error.message });
@@ -323,6 +367,7 @@ export class PostController {
       }
 
       await post.save();
+      await clearCachePattern('feed:*');
       res.status(200).json({ success: true, comment });
     } catch (error: any) {
       res.status(500).json({ success: false, error: error.message });
@@ -348,20 +393,45 @@ export class PostController {
         return;
       }
 
+      // Convert reactions to a plain array first to bypass deep nested Mongoose mutation issues
+      const reactions = post.reactions.map(r => ({
+        type: r.type,
+        userIds: [...r.userIds]
+      }));
+
       // Remove userId from any existing reaction type to prevent duplicate reactions on same post
-      post.reactions.forEach(r => {
+      reactions.forEach(r => {
         const index = r.userIds.indexOf(userId);
         if (index > -1) r.userIds.splice(index, 1);
       });
       
-      let reaction = post.reactions.find(r => r.type === type);
+      let reaction = reactions.find(r => r.type === type);
       if (!reaction) {
         reaction = { type: type as any, userIds: [] };
-        post.reactions.push(reaction);
+        reactions.push(reaction);
       }
       
       reaction.userIds.push(userId);
+      post.reactions = reactions as any;
       await post.save();
+      await clearCachePattern('feed:*');
+      
+      // Trigger notification if reactor is not the post author
+      if (post.authorId !== userId) {
+        try {
+          const axios = require('axios');
+          const NOTIFICATION_SERVICE_URL = process.env.NOTIFICATION_SERVICE_URL || 'http://localhost:3010';
+          await axios.post(`${NOTIFICATION_SERVICE_URL}/api/notifications`, {
+            userId: post.authorId,
+            title: 'New Reaction on Post',
+            message: `${req.user!.name || req.user!.email} reacted with "${type}" on your post`,
+            type: 'post_reaction',
+            referenceId: postId,
+          });
+        } catch (err: any) {
+          logger.error(`Failed to send post reaction notification for post ${postId}: ${err.message}`);
+        }
+      }
       
       res.status(200).json({ success: true, reactions: post.reactions });
     } catch (error: any) {
@@ -390,6 +460,7 @@ export class PostController {
       post.reactions = post.reactions.filter(r => r.userIds.length > 0);
       
       await post.save();
+      await clearCachePattern('feed:*');
       res.status(200).json({ success: true, reactions: post.reactions });
     } catch (error: any) {
       res.status(500).json({ success: false, error: error.message });
@@ -435,6 +506,34 @@ export class PostController {
       }
 
       logger.info(`Post flagged: ${postId} by ${req.user!.firebase_uid}`);
+
+      // Auto-suspension/banning logic
+      const flaggedCount = await Post.countDocuments({ authorId: post.authorId, isFlagged: true });
+      if (flaggedCount >= 3) {
+        const newStatus = flaggedCount >= 5 ? 'Banned' : 'Suspended';
+        const usersDb = mongoose.connection.useDb('xz_users');
+        let UserModel;
+        try {
+          UserModel = usersDb.model('User');
+        } catch {
+          UserModel = usersDb.model('User', new mongoose.Schema({
+            status: { type: String }
+          }, { collection: 'users' }));
+        }
+
+        // Try checking both _id and firebaseUid for the author
+        const updateResult = await UserModel.updateOne(
+          {
+            $or: [
+              { firebaseUid: post.authorId },
+              ...(mongoose.Types.ObjectId.isValid(post.authorId) ? [{ _id: new mongoose.Types.ObjectId(post.authorId) }] : [])
+            ]
+          },
+          { $set: { status: newStatus } }
+        );
+        logger.warn(`User ${post.authorId} automatically ${newStatus} due to having ${flaggedCount} flagged posts. Update result: ${JSON.stringify(updateResult)}`);
+      }
+
       await clearCachePattern('feed:*');
       res.status(200).json({ success: true, message: 'Content successfully flagged' });
     } catch (error: any) {

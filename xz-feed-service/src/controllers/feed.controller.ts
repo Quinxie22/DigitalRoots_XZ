@@ -14,13 +14,25 @@ export const getPersonalizedFeed = async (req: AuthRequest, res: Response): Prom
   try {
     // 1. Fetch user profile
     const profileRes = await axios.get(`${USER_SERVICE_URL}/api/users/profile`, {
-      headers: { Authorization: req.headers.authorization || '' }
+      headers: {
+        Authorization: req.headers.authorization || '',
+        'x-user-id': req.headers['x-user-id'] || '',
+        'x-user-role': req.headers['x-user-role'] || '',
+        'x-user-email': req.headers['x-user-email'] || '',
+        'x-user-name': req.headers['x-user-name'] || ''
+      }
     });
     const user = profileRes.data.user;
 
     // 2. Fetch posts from Content Service
-    const postsRes = await axios.get(`${CONTENT_SERVICE_URL}/api/content/posts`, {
-      headers: { Authorization: req.headers.authorization || '' }
+    const postsRes = await axios.get(`${CONTENT_SERVICE_URL}/api/content/posts/feed?limit=100`, {
+      headers: {
+        Authorization: req.headers.authorization || '',
+        'x-user-id': req.headers['x-user-id'] || '',
+        'x-user-role': req.headers['x-user-role'] || '',
+        'x-user-email': req.headers['x-user-email'] || '',
+        'x-user-name': req.headers['x-user-name'] || ''
+      }
     });
     const posts: any[] = postsRes.data.posts || [];
 

@@ -13,6 +13,7 @@ router.get('/', verifyToken, cacheMiddleware(300, 'stories'), StoryController.ge
 router.post('/upload', verifyToken, requireRole(['Elder', 'Youth', 'Admin']), handleSingleUpload('file'), validateStoryUpload, StoryController.uploadStory);
 router.get('/:storyId', verifyToken, StoryController.getStory);
 router.get('/:storyId/transcription', verifyToken, StoryController.getTranscriptionStatus);
+router.post('/:storyId/translate', verifyToken, StoryController.translateTranscript);
 router.get('/:storyId/transcript/download', verifyToken, StoryController.downloadTranscript);
 
 router.post('/:storyId/like', verifyToken, StoryController.likeStory);

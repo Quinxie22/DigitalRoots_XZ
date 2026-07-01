@@ -8,7 +8,7 @@ interface InterviewManagerProps {
   token: string;
 }
 
-const SESSION_SERVICE_URL = import.meta.env.VITE_SESSION_SERVICE_URL || 'http://localhost:3008';
+const SESSION_SERVICE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3004';
 const USER_SERVICE_URL = import.meta.env.VITE_USER_SERVICE_URL || 'http://localhost:3006';
 
 export default function InterviewManager({ currentUser, token }: InterviewManagerProps) {
@@ -288,19 +288,19 @@ export default function InterviewManager({ currentUser, token }: InterviewManage
   return (
     <div className="flex-1 overflow-y-auto px-8 py-6 flex flex-col bg-[var(--bg-dark)] h-full">
       {/* Header */}
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
-          <h2 className="text-2xl font-bold font-serif text-stone-850 dark:text-white flex items-center gap-2">
+          <h2 className="text-xl sm:text-2xl font-bold font-serif text-stone-850 dark:text-white flex items-center gap-2">
             <BookOpen style={{ color: 'var(--primary)' }} />
-            Oral History Interview Manager
+            Intergenerational Conversation Manager
           </h2>
           <p className="text-xs text-stone-400 mt-1">
-            Conduct intergenerational recording sessions to record memories and preserve indigenous history.
+            Conduct intergenerational recording sessions to share life stories, transfer knowledge, and discuss general topics.
           </p>
         </div>
         <button
           onClick={() => setShowProposeModal(true)}
-          className="flex items-center gap-1.5 py-3 px-5 rounded-2xl text-white font-bold text-xs hover:scale-[1.02] active:scale-[0.98] transition-all shadow-md shadow-red-950/20 cursor-pointer"
+          className="flex items-center justify-center gap-1.5 py-3 px-5 rounded-2xl text-white font-bold text-xs hover:scale-[1.02] active:scale-[0.98] transition-all shadow-md shadow-red-950/20 cursor-pointer self-start sm:self-auto flex-shrink-0"
           style={{ background: 'var(--primary)' }}
         >
           <Plus size={15} />
@@ -352,7 +352,7 @@ export default function InterviewManager({ currentUser, token }: InterviewManage
             <div className="flex-1 space-y-4">
               {upcomingInterviews.length === 0 ? (
                 <div className="text-center py-12 text-stone-500 text-xs border rounded-3xl p-6" style={{ borderColor: 'var(--border)' }}>
-                  No upcoming oral history interviews scheduled. Click "Propose Interview" to get started.
+                  No upcoming conversations scheduled. Click "Propose Interview" to get started.
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -516,10 +516,10 @@ export default function InterviewManager({ currentUser, token }: InterviewManage
             </button>
 
             <h3 className="text-lg font-bold font-serif text-stone-850 dark:text-white mb-2">
-              Propose Oral History Interview
+              Propose Intergenerational Conversation
             </h3>
             <p className="text-xs text-stone-450 mb-6">
-              Invite a partner to host or narrate a cultural history session.
+              Invite a partner to hold a conversation on careers, life experience, technology, or other topics.
             </p>
 
             <form onSubmit={handleProposeInterview} className="space-y-4">
@@ -650,7 +650,7 @@ export default function InterviewManager({ currentUser, token }: InterviewManage
               </div>
               <h3 className="text-xl font-bold font-serif text-stone-850 dark:text-white">{activeSession.title}</h3>
               <p className="text-xs text-stone-400 mt-1 capitalize">
-                Preserving Oral History: {activeSession.archivistName} & {activeSession.subjectName}
+                Intergenerational Conversation: {activeSession.archivistName} & {activeSession.subjectName}
               </p>
             </div>
 

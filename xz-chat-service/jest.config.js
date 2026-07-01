@@ -8,6 +8,8 @@ module.exports = {
   resetMocks: true,
   restoreMocks: true,
   moduleNameMapper: {
-    '^uuid$': '<rootDir>/tests/uuidMock.ts'
+    '^uuid$': '<rootDir>/tests/uuidMock.ts',
+    'file\\.service$': '<rootDir>/tests/fileServiceMock.ts',
+    'cache\\.middleware$': '<rootDir>/tests/cacheMiddlewareMock.ts'
   }
 };

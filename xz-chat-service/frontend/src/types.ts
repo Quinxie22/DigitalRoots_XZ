@@ -14,6 +14,7 @@ export interface User {
   contentPreferences?: string[];
   legacyCredits?: number;
   badges?: string[];
+  age?: number;
 }
 
 export interface Message {
@@ -45,6 +46,8 @@ export interface Message {
   readBy?: string[];
   deliveredTo?: string[];
   isDeleted?: boolean;
+  isUploading?: boolean;
+  uploadFailed?: boolean;
 }
 
 export interface Thread {

@@ -68,7 +68,7 @@ export class ChatController {
         logger.warn('Could not verify target user role, allowing thread creation:', lookupErr);
       }
 
-      const { topic } = req.body;
+      const { topic } = req.body || {};
       const participants = [firebaseUid, targetUserId];
       const thread = await ChatService.getOrCreateThread(participants, 'direct', undefined, topic);
       res.status(200).json(thread);
@@ -542,6 +542,70 @@ export class ChatController {
       res.status(200).json({ success: true, url: fileResult.url });
     } catch (error: any) {
       logger.error('Error in uploadGenericFile:', error);
+      res.status(500).json({ error: 'Internal Server Error', message: error.message });
+    }
+  }
+
+  // Secure file download proxy to preserve original file names
+  static async downloadFile(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const url = req.query.url;
+      const filename = req.query.filename;
+
+      if (!url || typeof url !== 'string') {
+        res.status(400).json({ error: 'Bad Request', message: 'URL query parameter is required' });
+        return;
+      }
+
+      const safeFilename = filename && typeof filename === 'string' ? filename : 'download';
+      const path = require('path');
+      const fs = require('fs');
+
+      // If it is a local upload path, e.g. /uploads/..., resolve it locally
+      if (url.startsWith('/uploads/')) {
+        const filePath = path.join(__dirname, '../../public', url);
+        if (fs.existsSync(filePath)) {
+          res.download(filePath, safeFilename);
+          return;
+        } else {
+          // Check in current content root uploads
+          const contentUploadsDir = path.join(__dirname, '../../uploads');
+          const localName = path.basename(url);
+          const fullPath = path.join(contentUploadsDir, localName);
+          if (fs.existsSync(fullPath)) {
+            res.download(fullPath, safeFilename);
+            return;
+          }
+        }
+      }
+
+      // If it's a relative path on backend but not matched, or absolute on backend
+      if (url.startsWith('http://localhost') || url.startsWith('http://127.0.0.1')) {
+        const cleanUrl = url.replace(/https?:\/\/[^\/]+/, '');
+        if (cleanUrl.startsWith('/uploads/')) {
+          const filePath = path.join(__dirname, '../../public', cleanUrl);
+          if (fs.existsSync(filePath)) {
+            res.download(filePath, safeFilename);
+            return;
+          }
+        }
+      }
+
+      // Otherwise, fetch it (e.g. from Cloudinary)
+      const axios = require('axios');
+      const response = await axios({
+        method: 'get',
+        url: url,
+        responseType: 'stream'
+      });
+
+      res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(safeFilename)}"`);
+      if (response.headers['content-type']) {
+        res.setHeader('Content-Type', response.headers['content-type']);
+      }
+      response.data.pipe(res);
+    } catch (error: any) {
+      logger.error('Error in proxy downloadFile:', error);
       res.status(500).json({ error: 'Internal Server Error', message: error.message });
     }
   }

@@ -19,6 +19,7 @@ import { TranscriptionService } from './services/transcription.service';
 import logger from './utils/logger';
 
 const app = express();
+app.set('etag', false);
 const httpServer = createServer(app);
 
 // Rate limiter middleware

@@ -48,7 +48,7 @@ export class KnowledgeController {
       });
       
       logger.info(`Knowledge article created: ${article.knowledgeId}`);
-      await clearCachePattern('knowledge:*');
+      await clearCachePattern('knowledge*');
       res.status(201).json({ success: true, article });
     } catch (error: any) {
       res.status(500).json({ success: false, error: error.message });
@@ -94,7 +94,7 @@ export class KnowledgeController {
         { new: true }
       );
 
-      await clearCachePattern('knowledge:*');
+      await clearCachePattern('knowledge*');
       res.status(200).json({ success: true, article: updatedArticle });
     } catch (error: any) {
       res.status(500).json({ success: false, error: error.message });
@@ -120,7 +120,7 @@ export class KnowledgeController {
       await KnowledgeArticle.deleteOne({ knowledgeId });
       
       logger.info(`Article deleted: ${knowledgeId} by author`);
-      await clearCachePattern('knowledge:*');
+      await clearCachePattern('knowledge*');
       res.status(200).json({ success: true, message: 'Article deleted successfully' });
     } catch (error: any) {
       res.status(500).json({ success: false, error: error.message });
@@ -174,7 +174,9 @@ export class KnowledgeController {
       }
       
       // Increment views
-      await KnowledgeArticle.updateOne({ knowledgeId }, { $inc: { views: 1 } });
+      if (req.query.incrementView !== 'false') {
+        await KnowledgeArticle.updateOne({ knowledgeId }, { $inc: { views: 1 } });
+      }
       
       res.status(200).json({ success: true, article });
     } catch (error: any) {
@@ -195,14 +197,35 @@ export class KnowledgeController {
       }
 
       const likedIndex = article.likes.indexOf(userId);
+      let actionType = 'like';
       if (likedIndex > -1) {
         article.likes.splice(likedIndex, 1); // Unlike
+        actionType = 'unlike';
       } else {
         article.likes.push(userId); // Like
+        actionType = 'like';
       }
       
       await article.save();
-      await clearCachePattern(`knowledge:*`);
+      await clearCachePattern(`knowledge*`);
+
+      // Trigger notification if it's a LIKE (not unlike) and the liker is not the author
+      if (actionType === 'like' && article.authorId !== userId) {
+        try {
+          const axios = require('axios');
+          const NOTIFICATION_SERVICE_URL = process.env.NOTIFICATION_SERVICE_URL || 'http://localhost:3010';
+          await axios.post(`${NOTIFICATION_SERVICE_URL}/api/notifications`, {
+            userId: article.authorId,
+            title: 'New Like on Article',
+            message: `${req.user!.name || req.user!.email} liked your article "${article.title}"`,
+            type: 'article_like',
+            referenceId: knowledgeId,
+          });
+        } catch (err: any) {
+          logger.error(`Failed to send article like notification for article ${knowledgeId}: ${err.message}`);
+        }
+      }
+
       res.status(200).json({ success: true, likes: article.likes.length });
     } catch (error: any) {
       res.status(500).json({ success: false, error: error.message });
@@ -225,7 +248,7 @@ export class KnowledgeController {
       if (index > -1) {
         article.likes.splice(index, 1);
         await article.save();
-        await clearCachePattern(`knowledge:*`);
+        await clearCachePattern(`knowledge*`);
       }
 
       res.status(200).json({ success: true, likes: article.likes.length });
@@ -316,19 +339,52 @@ export class KnowledgeController {
         return;
       }
 
-      article.isPublished = !!isPublished;
+      if (!isPublished) {
+        // Trigger notification to the author that content was rejected/unpublished
+        try {
+          const axios = require('axios');
+          const NOTIFICATION_SERVICE_URL = process.env.NOTIFICATION_SERVICE_URL || 'http://localhost:3010';
+          await axios.post(`${NOTIFICATION_SERVICE_URL}/api/notifications`, {
+            userId: article.authorId,
+            title: 'Article Rejected/Unpublished',
+            message: `Your article "${article.title}" was rejected or unpublished by the administrator.`,
+            type: 'article_rejected',
+            referenceId: article.knowledgeId
+          });
+        } catch (err: any) {
+          logger.error(`Failed to send article rejection notification for article ${knowledgeId}: ${err.message}`);
+        }
+
+        // Delete from DB so it disappears
+        await KnowledgeArticle.deleteOne({ knowledgeId });
+
+        await AuditLog.create({
+          logId: uuidv4(),
+          adminId,
+          adminName,
+          action: 'unpublish_article',
+          targetType: 'knowledge',
+          targetId: knowledgeId as string,
+        });
+
+        await clearCachePattern('knowledge*');
+        res.status(200).json({ success: true, message: 'Article rejected and deleted successfully' });
+        return;
+      }
+
+      article.isPublished = true;
       await article.save();
 
       await AuditLog.create({
         logId: uuidv4(),
         adminId,
         adminName,
-        action: isPublished ? 'publish_article' : 'unpublish_article',
+        action: 'publish_article',
         targetType: 'knowledge',
         targetId: knowledgeId as string,
       });
 
-      await clearCachePattern('knowledge:*');
+      await clearCachePattern('knowledge*');
       res.status(200).json({ success: true, article });
     } catch (error: any) {
       res.status(500).json({ success: false, error: error.message });
@@ -366,7 +422,7 @@ export class KnowledgeController {
         targetId: knowledgeId as string,
       });
 
-      await clearCachePattern('knowledge:*');
+      await clearCachePattern('knowledge*');
       res.status(200).json({ success: true, article });
     } catch (error: any) {
       res.status(500).json({ success: false, error: error.message });
@@ -424,6 +480,76 @@ export class KnowledgeController {
         articles,
         pagination: { page, limit, total, pages: Math.ceil(total / limit) }
       });
+    } catch (error: any) {
+      res.status(500).json({ success: false, error: error.message });
+    }
+  }
+
+  // Add comment to article
+  static async addComment(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const { knowledgeId } = req.params;
+      const { text } = req.body;
+      
+      if (!text) {
+        res.status(400).json({ success: false, error: 'Comment text is required' });
+        return;
+      }
+      
+      const article = await KnowledgeArticle.findOne({ knowledgeId });
+      if (!article) {
+        res.status(404).json({ success: false, error: 'Article not found' });
+        return;
+      }
+      
+      article.comments.push({
+        userId: req.user!.firebase_uid,
+        userName: req.user!.name || req.user!.email,
+        text,
+        timestamp: new Date(),
+        likes: [],
+      });
+      
+      await article.save();
+      await clearCachePattern(`knowledge*`);
+      
+      res.status(201).json({ success: true, comment: article.comments[article.comments.length - 1] });
+    } catch (error: any) {
+      res.status(500).json({ success: false, error: error.message });
+    }
+  }
+
+  // Delete comment from article (Author deletes own, Admin deletes any)
+  static async deleteComment(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const { knowledgeId, commentId } = req.params;
+      
+      const article = await KnowledgeArticle.findOne({ knowledgeId });
+      if (!article) {
+        res.status(404).json({ success: false, error: 'Article not found' });
+        return;
+      }
+
+      const commentIndex = article.comments.findIndex(c => (c as any)._id.toString() === commentId);
+      if (commentIndex === -1) {
+        res.status(404).json({ success: false, error: 'Comment not found' });
+        return;
+      }
+
+      const comment = article.comments[commentIndex];
+      const isAdmin = req.user!.role === 'Admin';
+      const isAuthor = comment.userId === req.user!.firebase_uid;
+
+      if (!isAdmin && !isAuthor) {
+        res.status(403).json({ success: false, error: 'Unauthorized to delete this comment' });
+        return;
+      }
+
+      article.comments.splice(commentIndex, 1);
+      await article.save();
+      await clearCachePattern(`knowledge*`);
+
+      res.status(200).json({ success: true, message: 'Comment deleted successfully' });
     } catch (error: any) {
       res.status(500).json({ success: false, error: error.message });
     }

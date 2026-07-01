@@ -7,9 +7,14 @@ import path from 'path';
 import os from 'os';
 import Bull, { Queue } from 'bull';
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+// Lazy client — only created when a real API key is present
+let _openai: OpenAI | null = null;
+function getOpenAIClient(): OpenAI {
+  if (!_openai) {
+    _openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+  }
+  return _openai;
+}
 
 export class TranscriptionService {
   private static transcriptionQueue: Queue;
@@ -47,6 +52,19 @@ export class TranscriptionService {
   
   private static async processTranscription(storyId: string, audioUrl: string): Promise<any> {
     try {
+      const apiKey = process.env.OPENAI_API_KEY;
+      if (!apiKey || apiKey === 'sk-your-openai-key' || apiKey === 'dummy-key-for-compilation' || apiKey.startsWith('sk-your')) {
+        logger.warn(`OpenAI API Key is not configured or is default in Content Service. Placing transcription service on standby.`);
+        await Story.updateOne(
+          { storyId },
+          {
+            transcriptStatus: 'completed',
+            transcript: '[Transcription Service Standby: API Key not configured]',
+          }
+        );
+        return { success: true, transcript: '[Standby: API Key not configured]' };
+      }
+
       await Story.updateOne({ storyId }, { transcriptStatus: 'processing' });
       
       // Download audio
@@ -65,11 +83,15 @@ export class TranscriptionService {
         });
       }
       
+      // Get story's chosen language dynamically from MongoDB
+      const story = await Story.findOne({ storyId });
+      const storyLanguage = story?.language || 'en';
+
       // Transcribe with Whisper
-      const transcription = await openai.audio.transcriptions.create({
+      const transcription = await getOpenAIClient().audio.transcriptions.create({
         file: fs.createReadStream(tempFilePath),
         model: 'whisper-1',
-        language: 'fr',
+        language: storyLanguage,
         response_format: 'verbose_json',
       });
       

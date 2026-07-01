@@ -1,4 +1,5 @@
-import admin from 'firebase-admin';
+import { initializeApp, cert, getApps } from 'firebase-admin/app';
+import { getAuth } from 'firebase-admin/auth';
 import logger from '../utils/logger';
 
 // Check if Firebase is configured and not placeholder values
@@ -19,9 +20,9 @@ if (hasFirebaseConfig) {
     clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
   };
 
-  if (!admin.apps.length) {
-    admin.initializeApp({
-      credential: admin.credential.cert(serviceAccount as admin.ServiceAccount),
+  if (getApps().length === 0) {
+    initializeApp({
+      credential: cert(serviceAccount),
     });
     logger.info('Firebase Admin initialized for Content Service');
   }
@@ -51,7 +52,5 @@ export const verifyFirebaseToken = async (token: string): Promise<any> => {
       name,
     };
   }
-  return await admin.auth().verifyIdToken(token);
+  return await getAuth().verifyIdToken(token);
 };
-
-export default admin;

@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
-import { ShieldAlert, ImageIcon, FileText, Film, X, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ShieldAlert, ImageIcon, FileText, Film, X, ChevronLeft, ChevronRight, Music, ArrowRight } from 'lucide-react';
 import type { Message, User } from '../types';
 import { getArchives, uploadFile, resolveMediaUrl } from '../api';
 import { socket } from '../socket';
@@ -18,8 +18,10 @@ interface ProfileSidebarProps {
     languages?: string[];
     legacyCredits?: number;
     badges?: string[];
+    avatar?: string;
   };
   onReportClick: () => void;
+  onJumpToMessage?: (messageId: string) => void;
 }
 
 // Interest tags map to match Figma and give customized feels
@@ -30,11 +32,13 @@ const COLLEAGUE_INTERESTS: Record<string, string[]> = {
   'user-felix': ['East African History', 'Oral Storytelling', 'Community Dev'],
 };
 
-export default function ProfileSidebar({ threadId, currentUser, otherUser, onReportClick }: ProfileSidebarProps) {
+export default function ProfileSidebar({ threadId, currentUser, otherUser, onReportClick, onJumpToMessage }: ProfileSidebarProps) {
   const [items, setItems] = useState<Message[]>([]);
   const [loading, setLoading] = useState(true);
   const [lightbox, setLightbox] = useState<number | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [showAllFiles, setShowAllFiles] = useState(false);
+  const [filesTab, setFilesTab] = useState<'media' | 'documents'>('media');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const load = useCallback(async () => {
@@ -82,12 +86,25 @@ export default function ProfileSidebar({ threadId, currentUser, otherUser, onRep
   };
 
   const mediaItems = items.filter((m) => m.type === 'image' || m.type === 'video');
+  const documentItems = items.filter((m) => m.type !== 'image' && m.type !== 'video');
   const interests = COLLEAGUE_INTERESTS[otherUser.id] || ['History', 'Memories', 'Mentorship'];
+
+  // Show 3 items in sidebar if total > 5, otherwise show all (up to 5)
+  const SIDEBAR_LIMIT = items.length > 5 ? 3 : 5;
+  const sidebarItems = items.slice(0, SIDEBAR_LIMIT);
+  const hasMore = items.length > SIDEBAR_LIMIT;
 
   const FileIcon = ({ type }: { type: string }) => {
     if (type === 'image') return <ImageIcon size={14} />;
     if (type === 'video') return <Film size={14} />;
     return <FileText size={14} />;
+  };
+
+  const handleItemClick = (msg: Message) => {
+    if (onJumpToMessage) {
+      setShowAllFiles(false);
+      onJumpToMessage(msg.messageId);
+    }
   };
 
   return (
@@ -100,8 +117,12 @@ export default function ProfileSidebar({ threadId, currentUser, otherUser, onRep
         {/* Profile Avatar Frame */}
         <div className="relative mb-4 mt-2">
           <div className="w-24 h-24 rounded-full p-1 border-2" style={{ borderColor: 'var(--primary)' }}>
-            <div className={`w-full h-full rounded-full flex items-center justify-center text-2xl font-bold text-white bg-gradient-to-br ${otherUser.color}`}>
-              {otherUser.initials}
+            <div className={`w-full h-full rounded-full flex items-center justify-center text-2xl font-bold text-white bg-gradient-to-br overflow-hidden ${otherUser.color}`}>
+              {otherUser.avatar && (otherUser.avatar.startsWith('http') || otherUser.avatar.startsWith('/') || otherUser.avatar.includes('.')) ? (
+                <img src={resolveMediaUrl(otherUser.avatar)} alt={otherUser.name} className="w-full h-full object-cover rounded-full" />
+              ) : (
+                otherUser.initials
+              )}
             </div>
           </div>
         </div>
@@ -213,47 +234,58 @@ export default function ProfileSidebar({ threadId, currentUser, otherUser, onRep
               <p className="text-[11px] mt-1.5" style={{ color: 'var(--text-muted)' }}>No shared assets in this timeline</p>
             </div>
           ) : (
-            <div className="grid grid-cols-3 gap-2 w-full">
-              {items.slice(0, 3).map((msg, idx) => {
-                const url = msg.fileMetadata?.thumbnailUrl || msg.fileMetadata?.url || '';
-                const isImage = msg.type === 'image';
-                const isVideo = msg.type === 'video';
-                const mediaIdx = mediaItems.findIndex((m) => m.messageId === msg.messageId);
+            <>
+              <div className="grid grid-cols-3 gap-2 w-full">
+                {sidebarItems.map((msg, idx) => {
+                  const url = msg.fileMetadata?.thumbnailUrl || msg.fileMetadata?.url || '';
+                  const isImage = msg.type === 'image';
+                  const isVideo = msg.type === 'video';
 
-                // Check if this is the 3rd index (we display up to 3 thumbnails, if total items > 3, overlay +N on 3rd)
-                const isLastDisplayed = idx === 2;
-                const remainingCount = items.length - 3;
+                  return (
+                    <div
+                      key={msg.messageId}
+                      onClick={() => handleItemClick(msg)}
+                      className="relative rounded-xl overflow-hidden cursor-pointer aspect-square bg-[#eaeaea] dark:bg-[#1a1a24] border border-black/5 hover:scale-[1.04] transition-transform"
+                    >
+                      {isImage && url ? (
+                        <img src={resolveMediaUrl(url)} alt="shared" className="w-full h-full object-cover" />
+                      ) : isVideo && url ? (
+                        <video src={resolveMediaUrl(url)} className="w-full h-full object-cover" muted />
+                      ) : (
+                        <div className="w-full h-full flex flex-col items-center justify-center p-1.5">
+                          <FileIcon type={msg.type} />
+                          <span className="text-[8px] truncate max-w-full text-center mt-1 text-stone-500" style={{ fontSize: '7px' }}>
+                            {msg.fileMetadata?.fileName || 'File'}
+                          </span>
+                        </div>
+                      )}
 
-                return (
-                  <div
-                    key={msg.messageId}
-                    onClick={() => (isImage || isVideo) ? setLightbox(mediaIdx) : undefined}
-                    className="relative rounded-xl overflow-hidden cursor-pointer aspect-square bg-[#eaeaea] dark:bg-[#1a1a24] border border-black/5"
-                    style={{ transition: 'transform 0.15s ease' }}>
-                    
-                    {isImage && url ? (
-                      <img src={resolveMediaUrl(url)} alt="shared" className="w-full h-full object-cover" />
-                    ) : isVideo && url ? (
-                      <video src={resolveMediaUrl(url)} className="w-full h-full object-cover" muted />
-                    ) : (
-                      <div className="w-full h-full flex flex-col items-center justify-center p-1.5">
-                        <FileIcon type={msg.type} />
-                        <span className="text-[8px] truncate max-w-full text-center mt-1 text-stone-500" style={{ fontSize: '7px' }}>
-                          {msg.fileMetadata?.fileName || 'File'}
-                        </span>
-                      </div>
-                    )}
+                      {/* Overlay for +N on the last grid item */}
+                      {idx === sidebarItems.length - 1 && hasMore && (
+                        <div 
+                          className="absolute inset-0 bg-black/60 flex items-center justify-center text-white text-sm font-bold cursor-pointer"
+                          onClick={(e) => { e.stopPropagation(); setShowAllFiles(true); }}
+                        >
+                          +{items.length - SIDEBAR_LIMIT}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
 
-                    {/* Overlay for +N on the third grid item */}
-                    {isLastDisplayed && remainingCount > 0 && (
-                      <div className="absolute inset-0 bg-black/60 flex items-center justify-center text-white text-sm font-bold pointer-events-none">
-                        +{remainingCount}
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
+              {/* View All Button */}
+              {hasMore && (
+                <button
+                  onClick={() => setShowAllFiles(true)}
+                  className="w-full mt-3 py-2 rounded-xl text-[11px] font-bold flex items-center justify-center gap-1.5 transition-all hover:opacity-85 border"
+                  style={{ color: 'var(--primary)', borderColor: 'var(--border)', background: 'var(--bg-elevated)' }}
+                >
+                  View All Shared Files ({items.length})
+                  <ArrowRight size={12} />
+                </button>
+              )}
+            </>
           )}
         </div>
       </div>
@@ -320,6 +352,144 @@ export default function ProfileSidebar({ threadId, currentUser, otherUser, onRep
           <p className="absolute bottom-4 text-sm text-stone-400">
             {lightbox + 1} / {mediaItems.length}
           </p>
+        </div>
+      )}
+
+      {/* ── Shared Files Directory Modal ── */}
+      {showAllFiles && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center"
+          style={{ background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(12px)' }}
+          onClick={() => setShowAllFiles(false)}
+        >
+          <div
+            className="w-full max-w-lg max-h-[85vh] rounded-3xl flex flex-col overflow-hidden border shadow-2xl mx-4"
+            style={{ background: 'var(--bg-card)', borderColor: 'var(--border)' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div className="flex items-center justify-between px-6 py-4 border-b" style={{ borderColor: 'var(--border)' }}>
+              <div>
+                <h3 className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>Shared Files Directory</h3>
+                <p className="text-[10px] mt-0.5" style={{ color: 'var(--text-muted)' }}>{items.length} files shared with {otherUser.name}</p>
+              </div>
+              <button
+                onClick={() => setShowAllFiles(false)}
+                className="w-8 h-8 rounded-full flex items-center justify-center hover:bg-[var(--bg-elevated)] transition-colors"
+                style={{ color: 'var(--text-muted)' }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Tab Switcher */}
+            <div className="flex border-b px-6" style={{ borderColor: 'var(--border)' }}>
+              <button
+                onClick={() => setFilesTab('media')}
+                className={`flex items-center gap-1.5 px-4 py-3 text-xs font-bold transition-all border-b-2 ${
+                  filesTab === 'media'
+                    ? 'border-[var(--primary)] text-[var(--primary)]'
+                    : 'border-transparent text-stone-500 hover:text-stone-700 dark:hover:text-stone-300'
+                }`}
+              >
+                <ImageIcon size={14} />
+                Images & Videos ({mediaItems.length})
+              </button>
+              <button
+                onClick={() => setFilesTab('documents')}
+                className={`flex items-center gap-1.5 px-4 py-3 text-xs font-bold transition-all border-b-2 ${
+                  filesTab === 'documents'
+                    ? 'border-[var(--primary)] text-[var(--primary)]'
+                    : 'border-transparent text-stone-500 hover:text-stone-700 dark:hover:text-stone-300'
+                }`}
+              >
+                <FileText size={14} />
+                Documents & Audio ({documentItems.length})
+              </button>
+            </div>
+
+            {/* Tab Content */}
+            <div className="flex-1 overflow-y-auto p-5">
+              {filesTab === 'media' ? (
+                mediaItems.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-10 opacity-40">
+                    <ImageIcon size={24} style={{ color: 'var(--text-muted)' }} />
+                    <p className="text-xs mt-2" style={{ color: 'var(--text-muted)' }}>No images or videos shared yet</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-3 gap-2.5">
+                    {mediaItems.map((msg) => {
+                      const url = msg.fileMetadata?.thumbnailUrl || msg.fileMetadata?.url || '';
+                      const isImage = msg.type === 'image';
+                      return (
+                        <div
+                          key={msg.messageId}
+                          onClick={() => handleItemClick(msg)}
+                          className="relative rounded-xl overflow-hidden cursor-pointer aspect-square bg-[#eaeaea] dark:bg-[#1a1a24] border border-black/5 hover:scale-[1.03] active:scale-[0.98] transition-all group"
+                        >
+                          {isImage && url ? (
+                            <img src={resolveMediaUrl(url)} alt="shared" className="w-full h-full object-cover" />
+                          ) : (
+                            <video src={resolveMediaUrl(url)} className="w-full h-full object-cover" muted />
+                          )}
+                          {/* Hover overlay with "Go to" indicator */}
+                          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors flex items-center justify-center">
+                            <span className="text-white text-[10px] font-bold opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
+                              <ArrowRight size={12} /> Jump to chat
+                            </span>
+                          </div>
+                          {/* Type badge */}
+                          {msg.type === 'video' && (
+                            <div className="absolute top-1.5 right-1.5 bg-black/60 rounded-md px-1 py-0.5">
+                              <Film size={10} className="text-white" />
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )
+              ) : (
+                documentItems.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-10 opacity-40">
+                    <FileText size={24} style={{ color: 'var(--text-muted)' }} />
+                    <p className="text-xs mt-2" style={{ color: 'var(--text-muted)' }}>No documents or audio files shared yet</p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {documentItems.map((msg) => {
+                      const fileName = msg.fileMetadata?.fileName || 'Unknown File';
+                      const isAudio = msg.type === 'audio' || msg.type === 'voice';
+                      const formattedDate = new Date(msg.timestamp).toLocaleDateString([], { month: 'short', day: 'numeric' });
+                      return (
+                        <button
+                          key={msg.messageId}
+                          onClick={() => handleItemClick(msg)}
+                          className="w-full flex items-center gap-3 p-3 rounded-xl border hover:bg-[var(--bg-elevated)] transition-all text-left group active:scale-[0.99]"
+                          style={{ borderColor: 'var(--border)' }}
+                        >
+                          <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${
+                            isAudio ? 'bg-purple-500/10 text-purple-500' : 'bg-blue-500/10 text-blue-500'
+                          }`}>
+                            {isAudio ? <Music size={18} /> : <FileText size={18} />}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-semibold truncate" style={{ color: 'var(--text-primary)' }}>
+                              {fileName}
+                            </p>
+                            <p className="text-[10px] mt-0.5" style={{ color: 'var(--text-muted)' }}>
+                              {formattedDate} · {isAudio ? 'Audio' : 'Document'}
+                            </p>
+                          </div>
+                          <ArrowRight size={14} className="text-stone-400 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
+                        </button>
+                      );
+                    })}
+                  </div>
+                )
+              )}
+            </div>
+          </div>
         </div>
       )}
 

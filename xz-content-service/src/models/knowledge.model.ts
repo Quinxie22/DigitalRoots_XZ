@@ -1,5 +1,5 @@
 import mongoose, { Schema, Document } from 'mongoose';
-import { ContentCategory } from './content.types';
+import { ContentCategory, Comment } from './content.types';
 
 export interface IKnowledgeArticle extends Document {
   knowledgeId: string;
@@ -16,6 +16,7 @@ export interface IKnowledgeArticle extends Document {
   likes: string[];
   bookmarks: string[];
   views: number;
+  comments: Comment[];
   isPublished: boolean;
   isFeatured: boolean;
   createdAt: Date;
@@ -38,6 +39,15 @@ const KnowledgeArticleSchema = new Schema<IKnowledgeArticle>(
     likes: { type: [String], default: [] },
     bookmarks: { type: [String], default: [] },
     views: { type: Number, default: 0 },
+    comments: [
+      {
+        userId: { type: String, required: true },
+        userName: { type: String, required: true },
+        text: { type: String, required: true },
+        timestamp: { type: Date, default: Date.now },
+        likes: { type: [String], default: [] },
+      },
+    ],
     isPublished: { type: Boolean, default: true },
     isFeatured: { type: Boolean, default: false },
   },

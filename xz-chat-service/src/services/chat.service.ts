@@ -28,6 +28,9 @@ export class ChatService {
         threadName: threadName || (threadType === 'direct' ? undefined : 'Group Chat'),
         unreadCount: unreadMap,
         discussionTopic: discussionTopic || '',
+        // Use epoch so new empty threads sort to the BOTTOM of the sidebar.
+        // updatedAt is promoted to "now" only when a real message is sent.
+        updatedAt: new Date(0),
       });
       logger.info(`Created new thread: ${threadId}`);
     } else if (discussionTopic !== undefined && discussionTopic.trim() !== '') {

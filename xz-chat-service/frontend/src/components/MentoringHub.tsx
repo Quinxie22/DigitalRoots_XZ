@@ -3,6 +3,7 @@ import { Users, Award, Sparkles, Check, X, Loader, ShieldAlert, ArrowRight, Mess
 import type { User } from '../types';
 import InterviewManager from './InterviewManager';
 import { resolveMediaUrl } from '../api';
+import { useTranslation } from 'react-i18next';
 
 interface MentoringHubProps {
   currentUser: User;
@@ -11,9 +12,10 @@ interface MentoringHubProps {
   onViewProfile?: (userId: string) => void;
 }
 
-const SESSION_SERVICE_URL = import.meta.env.VITE_SESSION_SERVICE_URL || 'http://localhost:3008';
+const SESSION_SERVICE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3004';
 
 export default function MentoringHub({ currentUser, token, onStartChat, onViewProfile }: MentoringHubProps) {
+  const { t } = useTranslation();
   const [matches, setMatches] = useState<any[]>([]);
   const [pairs, setPairs] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -156,10 +158,10 @@ export default function MentoringHub({ currentUser, token, onStartChat, onViewPr
         <div>
           <h2 className="text-2xl font-bold font-serif text-stone-850 dark:text-white flex items-center gap-2">
             <Users style={{ color: 'var(--primary)' }} />
-            Intergenerational Mentoring Hub
+            {t('mentoringTitle')}
           </h2>
           <p className="text-xs text-stone-400 mt-1">
-            Build meaningful mentorship pairings to transfer ancestral knowledge and digital skills.
+            {t('mentoringSubtitle')}
           </p>
         </div>
       </div>
@@ -172,49 +174,49 @@ export default function MentoringHub({ currentUser, token, onStartChat, onViewPr
       )}
 
       {/* Tabs */}
-      <div className="flex gap-4 border-b pb-3 mb-6" style={{ borderColor: 'var(--border)' }}>
+      <div className="flex gap-4 border-b pb-3 mb-6 overflow-x-auto scrollbar-none whitespace-nowrap max-w-full" style={{ borderColor: 'var(--border)' }}>
         <button
           onClick={() => setActiveTab('matches')}
-          className={`text-xs font-bold pb-2 transition-all border-b-2 px-1 hover:scale-105 cursor-pointer ${
+          className={`text-xs font-bold pb-2 transition-all border-b-2 px-1 hover:scale-105 cursor-pointer flex-shrink-0 ${
             activeTab === 'matches'
               ? 'text-red-500 font-extrabold'
               : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
           }`}
           style={{ borderBottomColor: activeTab === 'matches' ? 'var(--primary)' : 'transparent', color: activeTab === 'matches' ? 'var(--primary)' : undefined }}
         >
-          Matched {isCurrentElder ? 'Mentees (Youth)' : 'Mentors (Elders)'}
+          {isCurrentElder ? t('mentoringTabMatchesElders') : t('mentoringTabMatchesYouth')}
         </button>
         <button
           onClick={() => setActiveTab('pairings')}
-          className={`text-xs font-bold pb-2 transition-all border-b-2 px-1 relative hover:scale-105 cursor-pointer ${
+          className={`text-xs font-bold pb-2 transition-all border-b-2 px-1 relative hover:scale-105 cursor-pointer flex-shrink-0 ${
             activeTab === 'pairings'
               ? 'text-red-500 font-extrabold'
               : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
           }`}
           style={{ borderBottomColor: activeTab === 'pairings' ? 'var(--primary)' : 'transparent', color: activeTab === 'pairings' ? 'var(--primary)' : undefined }}
         >
-          My Pairings
+          {t('mentoringTabPairings')}
           {pairs.filter(p => p.status === 'requested' && ((isCurrentElder && p.mentorId === currentUser.id) || (!isCurrentElder && p.menteeId === currentUser.id))).length > 0 && (
             <span className="absolute -top-1.5 -right-2 w-2 h-2 rounded-full bg-red-500 animate-pulse" style={{ backgroundColor: 'var(--primary)' }} />
           )}
         </button>
         <button
           onClick={() => setActiveTab('interviews')}
-          className={`text-xs font-bold pb-2 transition-all border-b-2 px-1 hover:scale-105 cursor-pointer ${
+          className={`text-xs font-bold pb-2 transition-all border-b-2 px-1 hover:scale-105 cursor-pointer flex-shrink-0 ${
             activeTab === 'interviews'
               ? 'text-red-500 font-extrabold'
               : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
           }`}
           style={{ borderBottomColor: activeTab === 'interviews' ? 'var(--primary)' : 'transparent', color: activeTab === 'interviews' ? 'var(--primary)' : undefined }}
         >
-          Oral History Sessions
+          {t('mentoringTabInterviews')}
         </button>
       </div>
 
       {loading ? (
         <div className="flex-1 flex flex-col items-center justify-center text-stone-500 gap-2">
           <Loader className="animate-spin" size={24} style={{ color: 'var(--primary)' }} />
-          <span className="text-xs">Finding matches and pairings...</span>
+          <span className="text-xs">{t('mentoringLoadingMatches')}</span>
         </div>
       ) : (
         <>
@@ -222,7 +224,7 @@ export default function MentoringHub({ currentUser, token, onStartChat, onViewPr
             <div className="flex-1">
               {matches.length === 0 ? (
                 <div className="text-center py-12 text-stone-500 text-xs border rounded-3xl p-6" style={{ borderColor: 'var(--border)' }}>
-                  No complementary matches found. Try expanding your profile preferences or spoken languages.
+                  {t('mentoringNoMatchesFound')}
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -262,28 +264,28 @@ export default function MentoringHub({ currentUser, token, onStartChat, onViewPr
                                 >
                                   {user.name}
                                 </h4>
-                                <p className="text-[10px] text-stone-400 capitalize">{user.role} • {user.community || 'General'}</p>
+                                <p className="text-[10px] text-stone-400 capitalize">{user.role === 'Elder' ? t('senior') : user.role === 'Youth' ? t('youth') : user.role} • {user.community || 'General'}</p>
                               </div>
                             </div>
                             <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 text-[10px] font-extrabold uppercase">
                               <Sparkles size={11} />
-                              <span>{score}% Match</span>
+                              <span>{score}% {t('mentoringMatchScore')}</span>
                             </div>
                           </div>
 
                           <p className="text-xs text-stone-400 leading-relaxed mb-4 italic">
-                            "{user.bio || 'No bio provided.'}"
+                            "{user.bio || t('profileNoBio')}"
                           </p>                           <div className="flex flex-wrap gap-1.5 mb-4">
                             {user.languages?.map((l: string) => (
                               <span key={l} className="text-[9px] px-2 py-0.5 rounded bg-[var(--bg-elevated)] border font-semibold hover:scale-105 cursor-pointer transition-all" style={{ borderColor: 'var(--border)', color: 'var(--text-primary)' }}>
-                                {l}
+                                {l === 'English' ? t('english') : l === 'French' ? t('french') : l}
                               </span>
                             ))}
                           </div>
 
                           {sharedInterests && sharedInterests.length > 0 && (
                             <div className="mb-4">
-                              <span className="text-[9px] uppercase font-extrabold tracking-wider text-stone-400 block mb-1">Shared Interests</span>
+                              <span className="text-[9px] uppercase font-extrabold tracking-wider text-stone-400 block mb-1">{t('profileInterests')}</span>
                               <div className="flex flex-wrap gap-1.5">
                                 {sharedInterests.map((interest: string) => (
                                   <span key={interest} className="text-[9px] px-2.5 py-0.5 rounded border font-bold uppercase tracking-wider hover:scale-105 cursor-pointer transition-all" style={{ background: 'rgba(138, 30, 36, 0.08)', borderColor: 'rgba(138, 30, 36, 0.15)', color: 'var(--primary)' }}>
@@ -303,12 +305,12 @@ export default function MentoringHub({ currentUser, token, onStartChat, onViewPr
                               style={{ borderColor: 'var(--border)', backgroundColor: 'var(--bg-elevated)', color: 'var(--text-primary)' }}
                             >
                               <MessageSquare size={13} />
-                              Chat
+                              {t('mentoringChat')}
                             </button>
                           )}
                           {isAlreadyPaired ? (
                             <span className="flex-1 text-center text-xs font-semibold py-2.5 text-stone-500 bg-[var(--bg-elevated)] border rounded-xl" style={{ borderColor: 'var(--border)' }}>
-                              Pending / Connected
+                              {t('mentoringStatusPendingConnected')}
                             </span>
                           ) : (
                             <button
@@ -316,7 +318,7 @@ export default function MentoringHub({ currentUser, token, onStartChat, onViewPr
                               className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-white text-xs font-bold hover:scale-[1.01] transition-transform cursor-pointer"
                               style={{ background: 'var(--primary)' }}
                             >
-                              Connect
+                              {t('mentoringConnectButton')}
                               <ArrowRight size={13} />
                             </button>
                           )}
@@ -333,15 +335,15 @@ export default function MentoringHub({ currentUser, token, onStartChat, onViewPr
             <div className="flex-1 space-y-4">
               {pairs.length === 0 ? (
                 <div className="text-center py-12 text-stone-500 text-xs border rounded-3xl p-6" style={{ borderColor: 'var(--border)' }}>
-                  You do not have any active or requested mentoring pairings.
+                  {t('mentoringNoPairings')}
                 </div>
               ) : (
                 <div className="space-y-4">
                   {pairs.map(pair => {
                     const isMentor = pair.mentorId === currentUser.id;
                     const partnerId = isMentor ? pair.menteeId : pair.mentorId;
-                    const partnerName = (isMentor ? pair.menteeName : pair.mentorName) || 'Unknown Partner';
-                    const partnerRole = isMentor ? 'Youth Mentee' : 'Elder Mentor';
+                    const partnerName = (isMentor ? pair.menteeName : pair.mentorName) || t('mentoringUnknownPartner');
+                    const partnerRole = isMentor ? t('mentoringRoleMentee') : t('mentoringRoleMentor');
                     const isPendingAction = pair.status === 'requested' && pair.requestedById !== currentUser.id;
 
                     const usersJson = sessionStorage.getItem('users_list');
@@ -382,7 +384,7 @@ export default function MentoringHub({ currentUser, token, onStartChat, onViewPr
                               </span>
                             </div>
                             <p className="text-xs text-stone-450 mt-1">
-                              Focus: <strong className="text-stone-300 capitalize">{pair.pairingType} pairing</strong> — "{pair.skillFocus}"
+                              {t('mentoringFocusLabel')}: <strong className="text-stone-300 capitalize">{pair.pairingType === 'cultural' ? t('mentoringTypeWisdom') : t('mentoringTypeSkills')} {t('mentoringPairingLabel')}</strong> — "{pair.skillFocus}"
                             </p>
                           </div>
                         </div>
@@ -396,20 +398,20 @@ export default function MentoringHub({ currentUser, token, onStartChat, onViewPr
                                   className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
                                 >
                                   <Check size={13} />
-                                  Accept
+                                  {t('mentoringAcceptButton')}
                                 </button>
                                 <button
                                   onClick={() => handleCancelPairing(pair.pairingId)}
                                   className="px-4 py-2 bg-red-500/10 hover:bg-red-500/20 text-red-500 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all border border-red-500/20 cursor-pointer"
                                 >
                                   <X size={13} />
-                                  Decline
+                                  {t('mentoringDeclineButton')}
                                 </button>
                               </div>
                             ) : (
                               <div className="flex items-center gap-3">
                                 <span className="text-xs text-amber-500 bg-amber-500/10 border border-amber-500/20 px-3.5 py-1.5 rounded-full font-bold">
-                                  Pending Partner Approval
+                                  {t('mentoringPendingPartnerApproval')}
                                 </span>
                                 <button
                                   onClick={() => handleCancelPairing(pair.pairingId)}
@@ -424,7 +426,7 @@ export default function MentoringHub({ currentUser, token, onStartChat, onViewPr
                             <div className="flex items-center gap-3">
                               <span className="text-xs text-emerald-500 bg-emerald-500/10 border border-emerald-500/20 px-3.5 py-1.5 rounded-full font-bold flex items-center gap-1">
                                 <Award size={12} />
-                                Active Partnership
+                                {t('mentoringActivePartnership', 'Active Partnership')}
                               </span>
                               {onStartChat && !isPartnerAdmin && (
                                 <button
@@ -474,15 +476,15 @@ export default function MentoringHub({ currentUser, token, onStartChat, onViewPr
             </button>
 
             <h3 className="text-lg font-bold font-serif text-stone-850 dark:text-white mb-2">
-              Propose Mentorship Pairing
+              {t('mentoringProposeTitle')}
             </h3>
             <p className="text-xs text-stone-400 mb-6">
-              Establish a connection with <strong className="text-stone-300">{selectedUser.name}</strong>.
+              {t('mentoringEstablishConnection')} <strong className="text-stone-300">{selectedUser.name}</strong>.
             </p>
 
             <form onSubmit={handleRequestPairing} className="space-y-4">
               <div className="flex flex-col gap-1.5 text-left">
-                <label className="text-[10px] uppercase font-extrabold tracking-wider text-stone-400">Pairing Type</label>
+                <label className="text-[10px] uppercase font-extrabold tracking-wider text-stone-400">{t('mentoringPairingTypeLabel')}</label>
                 <div className="flex gap-3">
                   <button
                     type="button"
@@ -492,7 +494,7 @@ export default function MentoringHub({ currentUser, token, onStartChat, onViewPr
                     }`}
                     style={{ borderColor: pairingType === 'cultural' ? 'var(--primary)' : 'var(--border)' }}
                   >
-                    Cultural Heritage
+                    {t('mentoringTypeWisdom')}
                   </button>
                   <button
                     type="button"
@@ -502,13 +504,13 @@ export default function MentoringHub({ currentUser, token, onStartChat, onViewPr
                     }`}
                     style={{ borderColor: pairingType === 'digital' ? 'var(--primary)' : 'var(--border)' }}
                   >
-                    Digital Literacy
+                    {t('mentoringTypeSkills')}
                   </button>
                 </div>
               </div>
 
               <div className="flex flex-col gap-1.5 text-left">
-                <label className="text-[10px] uppercase font-extrabold tracking-wider text-stone-400">Skill / Knowledge Focus</label>
+                <label className="text-[10px] uppercase font-extrabold tracking-wider text-stone-400">{t('mentoringSkillFocusLabel')}</label>
                 <textarea
                   value={skillFocus}
                   onChange={(e) => setSkillFocus(e.target.value)}
@@ -516,8 +518,8 @@ export default function MentoringHub({ currentUser, token, onStartChat, onViewPr
                   rows={3}
                   placeholder={
                     pairingType === 'cultural'
-                      ? 'Describe what cultural traditions, local folklore, or regional dialects you want to learn or teach...'
-                      : 'Describe what digital tasks (e.g. video creation, online research, microservice config) you want to learn or teach...'
+                      ? t('mentoringSkillFocusPlaceholderWisdom')
+                      : t('mentoringSkillFocusPlaceholderSkills')
                   }
                   className="px-4 py-3 rounded-xl border outline-none text-xs bg-[var(--bg-elevated)] w-full resize-none text-white"
                   style={{ borderColor: 'var(--border)' }}
@@ -533,10 +535,10 @@ export default function MentoringHub({ currentUser, token, onStartChat, onViewPr
                 {sendingRequest ? (
                   <>
                     <Loader className="animate-spin" size={14} />
-                    <span>Sending Proposal...</span>
+                    <span>{t('mentoringSendingProposal')}</span>
                   </>
                 ) : (
-                  <span>Send Proposal</span>
+                  <span>{t('mentoringSendProposalButton')}</span>
                 )}
               </button>
             </form>

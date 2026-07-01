@@ -10,9 +10,11 @@ export interface IPost extends Document {
   title?: string;
   content: string;
   mediaUrl?: string;
+  mediaUrls?: string[];
   thumbnailUrl?: string;
   fileMetadata?: FileMetadata;
-  category: ContentCategory;
+  category?: ContentCategory;
+  categories: ContentCategory[];
   tags: string[];
   comments: Comment[];
   reactions: Reaction[];
@@ -34,6 +36,7 @@ const PostSchema = new Schema<IPost>(
     title: { type: String, maxlength: 200 },
     content: { type: String, required: true },
     mediaUrl: { type: String },
+    mediaUrls: { type: [String], default: [] },
     thumbnailUrl: { type: String },
     fileMetadata: {
       url: String,
@@ -45,7 +48,8 @@ const PostSchema = new Schema<IPost>(
       height: Number,
       duration: Number,
     },
-    category: { type: String, enum: Object.values(ContentCategory), required: true },
+    category: { type: String, enum: Object.values(ContentCategory) },
+    categories: { type: [String], enum: Object.values(ContentCategory), default: [] },
     tags: { type: [String], default: [] },
     comments: [
       {

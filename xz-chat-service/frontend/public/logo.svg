@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40" fill="none" width="512" height="512">
+  <rect width="40" height="40" rx="12" fill="url(#xzGrad)" />
+  <path d="M11 11L29 29" stroke="white" strokeWidth="3.5" strokeLinecap="round" />
+  <path d="M29 11L23 17" stroke="white" strokeWidth="3.5" strokeLinecap="round" />
+  <path d="M17 23L11 29" stroke="white" strokeWidth="3.5" strokeLinecap="round" />
+  <path d="M13 15H27L13 25H27" stroke="rgba(255,255,255,0.85)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+  <defs>
+    <linearGradient id="xzGrad" x1="0" y1="0" x2="40" y2="40" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#E23E3E" />
+      <stop stop-color="#8A1E24" />
+    </linearGradient>
+  </defs>
+</svg>
