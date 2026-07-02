@@ -13,6 +13,7 @@ import {
 } from './api';
 import { socket } from './socket';
 import { useWebRTC } from './hooks/useWebRTC';
+import { resolveServiceUrl } from './utils/url';
 import Login from './components/Login';
 import Sidebar from './components/Sidebar';
 import CallView from './components/CallView';
@@ -171,7 +172,7 @@ export default function App() {
   const [showNotifications, setShowNotifications] = useState(false);
   const [notifications, setNotifications] = useState<any[]>([]);
 
-  const NOTIFICATION_SERVICE_URL_CLIENT = import.meta.env.VITE_NOTIFICATION_SERVICE_URL || 'http://localhost:3010';
+  const NOTIFICATION_SERVICE_URL_CLIENT = resolveServiceUrl(import.meta.env.VITE_NOTIFICATION_SERVICE_URL, 'http://localhost:3010');
 
   const fetchNotifications = useCallback(async () => {
     if (!currentUser) return;

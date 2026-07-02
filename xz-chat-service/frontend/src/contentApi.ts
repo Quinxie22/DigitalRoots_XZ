@@ -3,7 +3,10 @@
 // API helper functions for communicating with the backend Content Service.
 // ─────────────────────────────────────────────────────────────────────────────
 
-const CONTENT_URL = import.meta.env.VITE_CONTENT_URL || 'http://localhost:3005';
+import { resolveServiceUrl } from './utils/url';
+
+const CONTENT_URL = resolveServiceUrl(import.meta.env.VITE_CONTENT_URL, 'http://localhost:3005');
+const USER_SERVICE_URL = resolveServiceUrl(import.meta.env.VITE_USER_SERVICE_URL, 'http://localhost:3006');
 
 function authHeaders(token: string) {
   const realToken = sessionStorage.getItem('token') || localStorage.getItem('token') || token;
@@ -15,7 +18,7 @@ function authHeaders(token: string) {
 
 // ─── Posts API ────────────────────────────────────────────────
 export async function getFeed(token: string, page = 1, limit = 20, category = '', sort = 'newest') {
-  const FEED_URL = import.meta.env.VITE_FEED_SERVICE_URL || 'http://localhost:3009';
+  const FEED_URL = resolveServiceUrl(import.meta.env.VITE_FEED_SERVICE_URL, 'http://localhost:3009');
   
   if (!category) {
     try {
@@ -379,7 +382,7 @@ export async function publishArticle(token: string, knowledgeId: string, isPubli
 }
 
 export async function createAdminUser(token: string, body: { email: string; password?: string; name: string }) {
-  const res = await fetch(`http://localhost:3006/api/users/admins`, {
+  const res = await fetch(`${USER_SERVICE_URL}/api/users/admins`, {
     method: 'POST',
     headers: authHeaders(token),
     body: JSON.stringify(body),
@@ -416,7 +419,7 @@ export async function getPost(token: string, postId: string, incrementView = tru
 }
 
 export async function getAllUsersList(token: string) {
-  const res = await fetch(`http://localhost:3006/api/users`, {
+  const res = await fetch(`${USER_SERVICE_URL}/api/users`, {
     headers: authHeaders(token),
   });
   if (!res.ok) throw new Error(`getAllUsersList failed: ${res.status}`);
@@ -424,7 +427,7 @@ export async function getAllUsersList(token: string) {
 }
 
 export async function updateUserStatus(token: string, userId: string, status: 'Active' | 'Suspended' | 'Banned', reason?: string) {
-  const res = await fetch(`http://localhost:3006/api/users/${userId}/status`, {
+  const res = await fetch(`${USER_SERVICE_URL}/api/users/${userId}/status`, {
     method: 'PUT',
     headers: authHeaders(token),
     body: JSON.stringify({ status, reason }),
@@ -434,7 +437,7 @@ export async function updateUserStatus(token: string, userId: string, status: 'A
 }
 
 export async function updateUserRole(token: string, userId: string, role: 'Elder' | 'Youth' | 'Admin') {
-  const res = await fetch(`http://localhost:3006/api/users/${userId}/role`, {
+  const res = await fetch(`${USER_SERVICE_URL}/api/users/${userId}/role`, {
     method: 'PUT',
     headers: authHeaders(token),
     body: JSON.stringify({ role }),

@@ -10,7 +10,9 @@
 //   - In production, this would be a real Firebase ID token.
 // ─────────────────────────────────────────────────────────────────────────────
 
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3004';
+import { resolveServiceUrl } from './utils/url';
+
+const BACKEND_URL = resolveServiceUrl(import.meta.env.VITE_BACKEND_URL, 'http://localhost:3004');
 
 function authHeaders(token: string) {
   const realToken = sessionStorage.getItem('token') || localStorage.getItem('token') || token;
@@ -150,7 +152,7 @@ export async function reportConnection(token: string, threadId: string, reason: 
   return res.json();
 }
 
-const NOTIFICATION_SERVICE_URL = import.meta.env.VITE_NOTIFICATION_SERVICE_URL || 'http://localhost:3010';
+const NOTIFICATION_SERVICE_URL = resolveServiceUrl(import.meta.env.VITE_NOTIFICATION_SERVICE_URL, 'http://localhost:3010');
 
 export async function deleteNotification(token: string, notificationId: string): Promise<void> {
   const res = await fetch(`${NOTIFICATION_SERVICE_URL}/api/notifications/${notificationId}`, {
