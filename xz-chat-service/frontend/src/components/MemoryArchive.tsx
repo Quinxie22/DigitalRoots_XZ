@@ -50,6 +50,8 @@ export default function MemoryArchive({ currentUser, token, autoPlayStory, onCle
   const [recordTags, setRecordTags] = useState('');
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const recordingTimerRef = useRef<any>(null);
+  const mockTimerRef = useRef<any>(null);
+  const [isMockRecording, setIsMockRecording] = useState(false);
   const archiveFileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadSuccess, setUploadSuccess] = useState(false);
@@ -246,17 +248,33 @@ export default function MemoryArchive({ currentUser, token, autoPlayStory, onCle
 
   // Recording Logic
   const startRecording = async () => {
+    // ── Insecure-context / no-media-API path ─────────────────────
+    const insecureCtx = typeof window !== 'undefined' && !window.isSecureContext;
+    const noMediaApi = !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia;
+
+    if (insecureCtx || noMediaApi) {
+      const useMock = window.confirm(
+        'Microphone access is blocked (insecure HTTP context).\n\n' +
+        'Would you like to use a mock recording to test the upload flow? ' +
+        'A short synthesized audio clip will be generated for you.'
+      );
+      if (!useMock) return;
+
+      // Start a visual timer so UX feels real
+      setIsMockRecording(true);
+      setIsRecording(true);
+      setRecordingSeconds(0);
+      recordingTimerRef.current = setInterval(() => {
+        setRecordingSeconds(prev => prev + 1);
+      }, 1000);
+      return;
+    }
+
+    // ── Real microphone path ──────────────────────────────────────
     try {
-      if (typeof window !== 'undefined' && !window.isSecureContext) {
-        alert('Microphone access is blocked: Browsers restrict media devices to secure contexts (HTTPS or localhost). Please deploy with SSL/HTTPS or run locally to record audio.');
-        return;
-      }
-      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        alert('Microphone recording is not supported in this browser environment or requires a secure context (HTTPS).');
-        return;
-      }
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
+      const mimeType = MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : 'audio/mp4';
+      const mediaRecorder = new MediaRecorder(stream, { mimeType });
       const chunks: Blob[] = [];
 
       mediaRecorder.ondataavailable = (e) => {
@@ -264,7 +282,7 @@ export default function MemoryArchive({ currentUser, token, autoPlayStory, onCle
       };
 
       mediaRecorder.onstop = () => {
-        const blob = new Blob(chunks, { type: 'audio/webm' });
+        const blob = new Blob(chunks, { type: mimeType });
         setAudioBlob(blob);
         stream.getTracks().forEach(track => track.stop());
       };
@@ -283,11 +301,65 @@ export default function MemoryArchive({ currentUser, token, autoPlayStory, onCle
     }
   };
 
-  const stopRecording = () => {
-    if (mediaRecorderRef.current && isRecording) {
+  /** Synthesise a PCM WAV blob using OfflineAudioContext (no mic needed) */
+  const generateMockWav = async (durationSec: number): Promise<Blob> => {
+    const sampleRate = 22050;
+    const numSamples = sampleRate * durationSec;
+    const ctx = new OfflineAudioContext(1, numSamples, sampleRate);
+
+    // Gentle sine tone so the clip is non-empty and playable
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.frequency.value = 440;
+    gain.gain.value = 0.1;
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start(0);
+    osc.stop(durationSec);
+
+    const rendered = await ctx.startRendering();
+    const pcm = rendered.getChannelData(0);
+
+    // Build WAV file in memory
+    const byteLen = 44 + pcm.length * 2;
+    const buffer = new ArrayBuffer(byteLen);
+    const view = new DataView(buffer);
+    const writeStr = (off: number, s: string) => { for (let i = 0; i < s.length; i++) view.setUint8(off + i, s.charCodeAt(i)); };
+    writeStr(0, 'RIFF'); view.setUint32(4, byteLen - 8, true);
+    writeStr(8, 'WAVE'); writeStr(12, 'fmt ');
+    view.setUint32(16, 16, true); view.setUint16(20, 1, true); view.setUint16(22, 1, true);
+    view.setUint32(24, sampleRate, true); view.setUint32(28, sampleRate * 2, true);
+    view.setUint16(32, 2, true); view.setUint16(34, 16, true);
+    writeStr(36, 'data'); view.setUint32(40, pcm.length * 2, true);
+    let offset = 44;
+    for (let i = 0; i < pcm.length; i++) {
+      const s = Math.max(-1, Math.min(1, pcm[i]));
+      view.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
+      offset += 2;
+    }
+    return new Blob([buffer], { type: 'audio/wav' });
+  };
+
+  const stopRecording = async () => {
+    clearInterval(recordingTimerRef.current);
+    setIsRecording(false);
+
+    if (isMockRecording) {
+      // Generate a synthesised WAV clip of the recorded duration
+      setIsMockRecording(false);
+      try {
+        const duration = Math.max(1, recordingSeconds);
+        const mockBlob = await generateMockWav(duration);
+        setAudioBlob(mockBlob);
+      } catch (e) {
+        console.error('Mock WAV generation failed:', e);
+        alert('Could not generate mock audio. Please try again.');
+      }
+      return;
+    }
+
+    if (mediaRecorderRef.current) {
       mediaRecorderRef.current.stop();
-      clearInterval(recordingTimerRef.current);
-      setIsRecording(false);
     }
   };
 
@@ -457,6 +529,9 @@ export default function MemoryArchive({ currentUser, token, autoPlayStory, onCle
                   <div className="absolute top-4 left-1/2 -translate-x-1/2 flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-500/10 border border-red-500/20 animate-pulse">
                     <span className="w-1.5 h-1.5 rounded-full bg-red-500" />
                     <span className="text-[10px] font-extrabold uppercase text-red-500">{t('archiveRecordingLive')}</span>
+                    {isMockRecording && (
+                      <span className="ml-1 text-[9px] font-bold uppercase text-amber-400 bg-amber-400/10 px-1.5 py-0.5 rounded-full border border-amber-400/30">MOCK DEMO</span>
+                    )}
                   </div>
                 )}
 

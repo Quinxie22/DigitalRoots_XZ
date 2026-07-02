@@ -1343,7 +1343,7 @@ export default function App() {
       </aside>
 
       {activeTab === 'messages' && (
-        <div className="flex-grow flex min-h-0 overflow-hidden min-w-0">
+        <div className={`flex-1 min-h-0 w-full overflow-hidden flex flex-row ${!selectedThreadId ? 'pb-16 md:pb-0' : ''}`}>
           {/* Column 2: Conversations List Panel */}
           <Sidebar 
             currentUser={currentUser} 
@@ -1455,7 +1455,7 @@ export default function App() {
                     </div>
                     
                     {activeThread?.discussionTopic && (
-                      <div className="flex items-center gap-1.5 text-[10px] mt-0.5 truncate select-none text-gray-400 xs-hide">
+                      <div className="flex items-center gap-1.5 text-[10px] mt-0.5 truncate select-none text-gray-400">
                         <span className="font-semibold text-red-500 whitespace-nowrap" style={{ color: 'var(--primary)' }}>TOPIC:</span>
                         {isEditingTopic ? (
                           <div className="flex items-center gap-1.5 w-full">
@@ -1485,9 +1485,9 @@ export default function App() {
                                  setIsEditingTopic(true);
                                }}>
                             <span className="truncate italic text-stone-505 dark:text-stone-400">
-                              "{activeThread?.discussionTopic}"
+                              "{activeThread?.discussionTopic ?? ''}"
                             </span>
-                            <Edit3 size={11} className="opacity-0 group-hover:opacity-100 text-stone-400 transition-opacity" />
+                            <Edit3 size={11} className="opacity-70 md:opacity-0 md:group-hover:opacity-100 text-stone-400 transition-opacity flex-shrink-0" />
                           </div>
                         )}
                       </div>
