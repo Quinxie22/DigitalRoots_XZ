@@ -1,7 +1,7 @@
 services:
   # ── DATABASES ───────────────────────────────────────────────────────────────
   mongodb:
-    image: mongo:latest
+    image: mongo:4.4
     container_name: xz-mongodb
     ports:
       - "27017:27017"
@@ -25,6 +25,7 @@ services:
     build: ./xz-user-service
     container_name: xz-user-service
     environment:
+      - NODE_OPTIONS=--max-old-space-size=128
       - PORT=3006
       - MONGODB_URI=mongodb://mongodb:27017
       - MONGODB_DB=xz_users
@@ -43,6 +44,7 @@ services:
     env_file:
       - ./xz-content-service/.env
     environment:
+      - NODE_OPTIONS=--max-old-space-size=128
       - PORT=3005
       - MONGODB_URI=mongodb://mongodb:27017
       - MONGODB_DB=xz_content
@@ -63,6 +65,7 @@ services:
     env_file:
       - ./xz-chat-service/.env
     environment:
+      - NODE_OPTIONS=--max-old-space-size=128
       - PORT=3004
       - mongodb_uri=mongodb://mongodb:27017
       - mongodb_db_name=xz_chat_db
@@ -83,6 +86,7 @@ services:
     build: ./xz-point-service
     container_name: xz-point-service
     environment:
+      - NODE_OPTIONS=--max-old-space-size=128
       - PORT=3007
       - MONGODB_URI=mongodb://mongodb:27017
       - MONGODB_DB=xz_points
@@ -96,6 +100,7 @@ services:
     build: ./xz-feed-service
     container_name: xz-feed-service
     environment:
+      - NODE_OPTIONS=--max-old-space-size=128
       - PORT=3009
       - USER_SERVICE_URL=http://xz-user-service:3006
       - CONTENT_SERVICE_URL=http://xz-content-service:3005
@@ -109,6 +114,7 @@ services:
     build: ./xz-notification-service
     container_name: xz-notification-service
     environment:
+      - NODE_OPTIONS=--max-old-space-size=128
       - PORT=3010
       - MONGODB_URI=mongodb://mongodb:27017
       - MONGODB_DB=xz_notifications
@@ -134,6 +140,7 @@ services:
     ports:
       - "8000:8000"
     environment:
+      - NODE_OPTIONS=--max-old-space-size=128
       - PORT=8000
       - JWT_SECRET=xz_jwt_secret_shared_2026_key
       - USER_SERVICE_URL=http://xz-user-service:3006

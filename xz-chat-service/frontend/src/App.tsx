@@ -273,9 +273,10 @@ export default function App() {
       const unread = group.filter(n => !n.isRead);
       const latest = group[0];
       // Determine sender from thread participants stored in allUsers
-      const participants = threadId.split('_');
-      const senderId = participants.find((id: string) => id !== currentUser?.id);
-      const sender = allUsers.find((u: any) => u.id === senderId || u._id === senderId || u.firebase_uid === senderId);
+      const sender = allUsers.find((u: any) => {
+        const uId = u.id || u._id || u.firebase_uid || u.firebaseUid;
+        return uId && uId !== currentUser?.id && threadId.includes(uId);
+      });
       const senderName = sender?.name || 'Someone';
       aggregated.push({
         ...latest,
@@ -560,12 +561,12 @@ export default function App() {
         setMessages(msgs);
         
         // Find current thread configuration
-        const otherParticipantId = selectedThreadId.split('_').find(id => id !== currentUser.id) || '';
+        const otherParticipantId = data.participants?.find((id: string) => id !== currentUser.id) || getOtherUserId();
         setActiveThread({
           threadId: selectedThreadId,
           participants: [currentUser.id, otherParticipantId],
           threadType: 'direct',
-          discussionTopic: msgs[0]?.threadTopic || 'The first road trip across the coast, 1958'
+          discussionTopic: msgs[0]?.threadTopic || data.threadTopic || ''
         });
         
         // Only scroll when there are messages — prevents unwanted page jump on empty threads
@@ -921,6 +922,14 @@ export default function App() {
   // Start recording voice note
   const startVoiceRecording = async () => {
     try {
+      if (typeof window !== 'undefined' && !window.isSecureContext) {
+        alert('Microphone access is blocked: Browsers restrict media devices to secure contexts (HTTPS or localhost). Please deploy with SSL/HTTPS or run locally to record voice notes.');
+        return;
+      }
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        alert('Microphone recording is not supported in this browser environment or requires a secure context (HTTPS).');
+        return;
+      }
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       audioChunksRef.current = [];
       const mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
@@ -1050,8 +1059,19 @@ export default function App() {
     );
   }
 
+  const getOtherUserId = () => {
+    if (!selectedThreadId) return '';
+    const usersJson = localStorage.getItem('users_list') || sessionStorage.getItem('users_list');
+    const dynamicUsersList: any[] = usersJson ? JSON.parse(usersJson) : [];
+    const found = dynamicUsersList.find(u => {
+      const uId = u.id || u._id || u.firebaseUid || u.firebase_uid;
+      return uId && uId !== currentUser.id && selectedThreadId.includes(uId);
+    });
+    return found?.id || found?._id || found?.firebaseUid || found?.firebase_uid || selectedThreadId.split('_').find(id => id !== currentUser.id) || '';
+  };
+
   const otherUser = selectedThreadId 
-    ? getUserInfo(selectedThreadId.split('_').find(id => id !== currentUser.id) || '')
+    ? getUserInfo(getOtherUserId())
     : null;
 
   const otherIsOnline = otherUser ? onlineUsers.includes(otherUser.id) : false;
@@ -1061,7 +1081,7 @@ export default function App() {
     : '';
 
   return (
-    <div className="flex flex-col h-screen w-screen overflow-hidden select-none bg-[var(--bg-dark)]"
+    <div className="flex flex-col h-[100dvh] w-full overflow-hidden bg-[var(--bg-dark)]"
          style={{ color: 'var(--text-primary)' }}>
       
       {/* Mobile Top Header (hidden on desktop) */}
@@ -1322,7 +1342,7 @@ export default function App() {
       </aside>
 
       {activeTab === 'messages' && (
-        <div className="flex-grow flex h-full overflow-hidden min-w-0">
+        <div className="flex-grow flex min-h-0 overflow-hidden min-w-0">
           {/* Column 2: Conversations List Panel */}
           <Sidebar 
             currentUser={currentUser} 
@@ -1357,13 +1377,13 @@ export default function App() {
             </div>
           ) : (
             /* Column 3: Middle Main Chat/Call Window (only visible when a conversation is open) */
-            <main className="flex-grow flex flex-col h-full overflow-hidden relative bg-[var(--bg-surface)]">
+            <main className="flex-grow flex flex-col min-h-0 overflow-hidden relative bg-[var(--bg-surface)]">
               {/* Active Conversation Panel */}
-              <div className="flex-grow flex flex-col h-full overflow-hidden">
+              <div className="flex-grow flex flex-col min-h-0 overflow-hidden">
             
             {/* Split top call screen if call is active */}
             {isInCall && (
-              <div className="relative w-full h-[55%] flex-shrink-0 border-b border-[#1f1f2e] bg-black">
+              <div className="relative w-full h-[25%] sm:h-[55%] flex-shrink-0 border-b border-[#1f1f2e] bg-black">
                 <CallView 
                   localStream={localStream}
                   remoteStream={remoteStream}
@@ -1632,7 +1652,7 @@ export default function App() {
                       const isSelf = msg.senderId === currentUser.id;
                       const sender = getUserInfo(msg.senderId);
                       const formattedTime = new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                      const otherParticipantId = selectedThreadId ? (selectedThreadId.split('_').find(id => id !== currentUser.id) || '') : '';
+                      const otherParticipantId = selectedThreadId ? getOtherUserId() : '';
                       const isRead = msg.readBy?.includes(otherParticipantId);
                       const isDelivered = msg.deliveredTo?.includes(otherParticipantId) || isRead;
 
@@ -2186,7 +2206,7 @@ export default function App() {
       )}
 
       {activeTab === 'home' && (
-        <div className="flex-1 h-full w-full overflow-hidden flex flex-col pb-16 md:pb-0">
+        <div className="flex-1 min-h-0 w-full overflow-hidden flex flex-col pb-16 md:pb-0">
           <HomeDashboard 
             currentUser={currentUser} 
             token={currentUser.id} 
@@ -2202,7 +2222,7 @@ export default function App() {
       )}
 
       {activeTab === 'wisdom' && (
-        <div className="flex-1 h-full w-full overflow-hidden flex flex-col pb-16 md:pb-0">
+        <div className="flex-1 min-h-0 w-full overflow-hidden flex flex-col pb-16 md:pb-0">
           <WisdomHub 
             currentUser={currentUser} 
             token={currentUser.id} 
@@ -2211,7 +2231,7 @@ export default function App() {
       )}
 
       {activeTab === 'archive' && (
-        <div className="flex-1 h-full w-full overflow-hidden flex flex-col pb-16 md:pb-0">
+        <div className="flex-1 min-h-0 w-full overflow-hidden flex flex-col pb-16 md:pb-0">
           <MemoryArchive 
             currentUser={currentUser} 
             token={currentUser.id} 
@@ -2222,7 +2242,7 @@ export default function App() {
       )}
 
       {activeTab === 'settings' && (
-        <div className="flex-1 h-full w-full overflow-hidden flex flex-col pb-16 md:pb-0">
+        <div className="flex-1 min-h-0 w-full overflow-hidden flex flex-col pb-16 md:pb-0">
           <SettingsView 
             currentUser={currentUser} 
             onProfileUpdate={(updatedUser) => {
@@ -2248,7 +2268,7 @@ export default function App() {
       )}
 
       {activeTab === 'mentoring' && (
-        <div className="flex-1 h-full w-full overflow-hidden flex flex-col pb-16 md:pb-0">
+        <div className="flex-1 min-h-0 w-full overflow-hidden flex flex-col pb-16 md:pb-0">
           <MentoringHub 
             currentUser={currentUser} 
             token={sessionStorage.getItem('token') || localStorage.getItem('token') || currentUser.id} 
@@ -2267,7 +2287,7 @@ export default function App() {
       )}
 
       {activeTab === 'notifications' && (
-        <div className="flex-1 h-full w-full overflow-hidden flex flex-col pb-16 md:pb-0">
+        <div className="flex-1 min-h-0 w-full overflow-hidden flex flex-col pb-16 md:pb-0">
           <div className="flex flex-col h-full">
             {/* Header */}
             <div className="flex items-center justify-between px-6 py-4 border-b flex-shrink-0" style={{ borderColor: 'var(--border)' }}>
@@ -2383,7 +2403,7 @@ export default function App() {
       )}
 
       {activeTab === 'admin' && currentUser.role === 'Admin' && (
-        <div className="flex-1 h-full w-full overflow-hidden flex flex-col pb-16 md:pb-0">
+        <div className="flex-1 min-h-0 w-full overflow-hidden flex flex-col pb-16 md:pb-0">
           <AdminConsole 
             token={sessionStorage.getItem('token') || localStorage.getItem('token') || ''} 
             currentUser={currentUser} 

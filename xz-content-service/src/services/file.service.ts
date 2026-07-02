@@ -17,12 +17,22 @@ export enum FileCategory {
 export class FileService {
   static ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
   static ALLOWED_VIDEO_TYPES = ['video/mp4', 'video/webm'];
-  static ALLOWED_AUDIO_TYPES = ['audio/mpeg', 'audio/wav', 'audio/ogg', 'audio/webm'];
+  static ALLOWED_AUDIO_TYPES = [
+    'audio/mpeg', 'audio/wav', 'audio/ogg', 'audio/webm',
+    'audio/mp4', 'audio/x-m4a', 'audio/m4a', 'audio/aac', 'audio/3gpp', 'audio/3gpp2', 'audio/amr'
+  ];
+  static ALLOWED_DOCUMENT_TYPES = [
+    'application/pdf', 'text/plain', 'application/msword',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+  ];
   
   static MAX_SIZES = {
     image: 10 * 1024 * 1024,
     video: 100 * 1024 * 1024,
     audio: 25 * 1024 * 1024,
+    document: 50 * 1024 * 1024,
   };
   
   static isMockCloudinary(): boolean {
@@ -34,6 +44,7 @@ export class FileService {
     if (this.ALLOWED_IMAGE_TYPES.includes(mimetype)) return FileCategory.IMAGE;
     if (this.ALLOWED_VIDEO_TYPES.includes(mimetype)) return FileCategory.VIDEO;
     if (this.ALLOWED_AUDIO_TYPES.includes(mimetype)) return FileCategory.AUDIO;
+    if (this.ALLOWED_DOCUMENT_TYPES.includes(mimetype)) return FileCategory.DOCUMENT;
     return null;
   }
   

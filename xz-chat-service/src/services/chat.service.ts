@@ -94,7 +94,7 @@ export class ChatService {
       { $addToSet: { deliveredTo: firebaseUid } }
     );
     
-    return { messages: messages.reverse(), hasMore };
+    return { messages: messages.reverse(), hasMore, threadTopic: thread.discussionTopic, participants: thread.participants };
   }
   
   // Send text message

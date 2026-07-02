@@ -97,9 +97,23 @@ export default function CallView({
     </div>
   );
 
+  const isSecure = typeof window !== 'undefined' && window.isSecureContext;
+  const hasMedia = typeof navigator !== 'undefined' && navigator.mediaDevices && navigator.mediaDevices.getUserMedia;
+
   return (
     <div className="relative flex flex-col h-full select-none"
          style={{ background: '#000', flex: '1 1 0' }}>
+
+      {/* Secure context warning banner */}
+      {(!isSecure || !hasMedia) && (
+        <div className="text-red-400 px-3 py-2 text-[10px] sm:text-xs flex items-center gap-2 z-40 border-b border-red-500/20"
+             style={{ background: 'rgba(239, 68, 68, 0.12)' }}>
+          <span className="flex-shrink-0 text-sm">⚠️</span>
+          <span className="flex-1 leading-normal">
+            <strong>Microphone & Camera Blocked:</strong> Browser restricts media devices on insecure connections. Run on localhost or configure HTTPS/SSL to enable calling.
+          </span>
+        </div>
+      )}
 
       {/* ── Remote Video (main view) ───────────────────────────── */}
       <div className="relative flex-1 overflow-hidden">
@@ -191,7 +205,7 @@ export default function CallView({
       )}
 
       {/* ── Control Bar ──────────────────────────────────────────── */}
-      <div className="flex items-center justify-center gap-3 py-5 px-4"
+      <div className="flex items-center justify-center gap-1.5 sm:gap-3 py-2 sm:py-4 px-2 sm:px-4"
            style={{ background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(16px)' }}>
 
         {/* Mute */}
@@ -200,7 +214,7 @@ export default function CallView({
           active={isMuted}
           activeColor="var(--primary)"
           title={isMuted ? 'Unmute' : 'Mute'}
-          icon={isMuted ? <MicOff size={18} /> : <Mic size={18} />}
+          icon={isMuted ? <MicOff size={16} className="sm:w-[18px] sm:h-[18px]" /> : <Mic size={16} className="sm:w-[18px] sm:h-[18px]" />}
           label={isMuted ? 'Muted' : 'Mute'}
         />
 
@@ -210,18 +224,18 @@ export default function CallView({
           active={isVideoOff}
           activeColor="var(--primary)"
           title={isVideoOff ? 'Show Camera' : 'Hide Camera'}
-          icon={isVideoOff ? <VideoOff size={18} /> : <Video size={18} />}
+          icon={isVideoOff ? <VideoOff size={16} className="sm:w-[18px] sm:h-[18px]" /> : <Video size={16} className="sm:w-[18px] sm:h-[18px]" />}
           label="Camera"
         />
 
         {/* End Call */}
         <button
           onClick={onEndCall}
-          className="flex flex-col items-center gap-1 px-5 py-3 rounded-2xl text-white font-semibold transition-all hover:scale-105 active:scale-95"
+          className="flex flex-col items-center gap-0.5 sm:gap-1 px-3 sm:px-5 py-1.5 sm:py-3 rounded-xl sm:rounded-2xl text-white font-semibold transition-all hover:scale-105 active:scale-95"
           style={{ background: 'var(--primary)', boxShadow: '0 4px 16px rgba(220,38,38,0.5)' }}
           title="End Call">
-          <PhoneOff size={20} />
-          <span className="text-xs">End</span>
+          <PhoneOff size={16} className="sm:w-5 sm:h-5" />
+          <span className="text-[9px] sm:text-xs">End</span>
         </button>
 
         {/* Captions */}
@@ -230,7 +244,7 @@ export default function CallView({
           active={showCaptions}
           activeColor="#7c3aed"
           title="Toggle Captions"
-          icon={<Captions size={18} />}
+          icon={<Captions size={16} className="sm:w-[18px] sm:h-[18px]" />}
           label="Captions"
         />
 
@@ -240,7 +254,7 @@ export default function CallView({
           active={!volume}
           activeColor="var(--primary)"
           title="Toggle Volume"
-          icon={<Volume2 size={18} />}
+          icon={<Volume2 size={16} className="sm:w-[18px] sm:h-[18px]" />}
           label="Volume"
         />
 
@@ -250,7 +264,7 @@ export default function CallView({
           active={isRecording}
           activeColor="#dc2626"
           title={isRecording ? 'Stop Recording' : 'Record'}
-          icon={<Radio size={18} />}
+          icon={<Radio size={16} className="sm:w-[18px] sm:h-[18px]" />}
           label={isRecording ? 'Stop' : 'Rec'}
         />
       </div>
@@ -272,16 +286,16 @@ function ControlBtn({
   return (
     <button
       onClick={onClick}
-      className="flex flex-col items-center gap-1 px-3 py-2.5 rounded-2xl transition-all hover:scale-105 active:scale-95"
+      className="flex flex-col items-center gap-0.5 sm:gap-1 px-1.5 sm:px-3 py-1.5 sm:py-2.5 rounded-xl sm:rounded-2xl transition-all hover:scale-105 active:scale-95"
       style={{
         background: active ? activeColor : 'rgba(255,255,255,0.08)',
         color: 'white',
         border: `1px solid ${active ? 'transparent' : 'rgba(255,255,255,0.1)'}`,
-        minWidth: '56px',
+        minWidth: '44px',
       }}
       title={title}>
       {icon}
-      <span style={{ fontSize: '10px', fontWeight: 600 }}>{label}</span>
+      <span className="text-[8px] sm:text-[10px] font-semibold">{label}</span>
     </button>
   );
 }

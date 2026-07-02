@@ -351,7 +351,7 @@ export default function WisdomHub({ currentUser, token }: WisdomHubProps) {
   };
 
   return (
-    <div className="flex-1 flex flex-col h-full overflow-hidden bg-[var(--bg-dark)]">
+    <div className="flex-1 flex flex-col min-h-0 overflow-hidden bg-[var(--bg-dark)]">
       
       {/* Tab Navigation Header */}
       <header className="md:h-16 py-4 md:py-0 flex-shrink-0 flex flex-col md:flex-row md:items-center justify-between px-4 sm:px-8 gap-4 md:gap-0 border-b"

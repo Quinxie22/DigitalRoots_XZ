@@ -50,6 +50,7 @@ export default function MemoryArchive({ currentUser, token, autoPlayStory, onCle
   const [recordTags, setRecordTags] = useState('');
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const recordingTimerRef = useRef<any>(null);
+  const archiveFileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadSuccess, setUploadSuccess] = useState(false);
   const [uploadMode, setUploadMode] = useState<'record' | 'file'>('record');
@@ -246,6 +247,14 @@ export default function MemoryArchive({ currentUser, token, autoPlayStory, onCle
   // Recording Logic
   const startRecording = async () => {
     try {
+      if (typeof window !== 'undefined' && !window.isSecureContext) {
+        alert('Microphone access is blocked: Browsers restrict media devices to secure contexts (HTTPS or localhost). Please deploy with SSL/HTTPS or run locally to record audio.');
+        return;
+      }
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        alert('Microphone recording is not supported in this browser environment or requires a secure context (HTTPS).');
+        return;
+      }
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
       const chunks: Blob[] = [];
@@ -360,7 +369,7 @@ export default function MemoryArchive({ currentUser, token, autoPlayStory, onCle
   };
 
   return (
-    <div className="flex-1 flex flex-col h-full overflow-hidden bg-[var(--bg-dark)]">
+    <div className="flex-1 flex flex-col min-h-0 overflow-hidden bg-[var(--bg-dark)]">
       
       {/* Header Tabs */}
       <header className="md:h-16 py-4 md:py-0 flex-shrink-0 flex flex-col md:flex-row md:items-center justify-between px-4 sm:px-8 gap-4 md:gap-0 border-b"
@@ -509,8 +518,13 @@ export default function MemoryArchive({ currentUser, token, autoPlayStory, onCle
               </div>
             ) : (
               /* FILE UPLOAD INTERFACE */
-              <div className="flex flex-col items-center justify-center p-6 bg-[var(--bg-elevated)] rounded-3xl border relative overflow-hidden" style={{ borderColor: 'var(--border)' }}>
+              <div 
+                onClick={() => archiveFileInputRef.current?.click()}
+                className="w-full flex flex-col items-center justify-center p-6 bg-[var(--bg-elevated)] rounded-3xl border relative overflow-hidden cursor-pointer hover:opacity-90" 
+                style={{ borderColor: 'var(--border)' }}
+              >
                 <input 
+                  ref={archiveFileInputRef}
                   type="file" 
                   onChange={(e) => {
                     const file = e.target.files?.[0];
@@ -523,9 +537,8 @@ export default function MemoryArchive({ currentUser, token, autoPlayStory, onCle
                   className="hidden"
                   id="archive-file-input"
                 />
-                <label 
-                  htmlFor="archive-file-input"
-                  className="w-full flex flex-col items-center justify-center p-8 bg-[var(--bg-card)] rounded-2xl border border-dashed border-stone-800 dark:border-stone-700 cursor-pointer hover:border-red-500 transition-colors"
+                <div 
+                  className="w-full flex flex-col items-center justify-center p-8 bg-[var(--bg-card)] rounded-2xl border border-dashed border-stone-800 dark:border-stone-700 transition-colors"
                 >
                   <FileText size={36} className="text-stone-500 mb-2" />
                   <span className="text-xs font-semibold text-stone-300 text-center truncate max-w-xs">
@@ -534,7 +547,7 @@ export default function MemoryArchive({ currentUser, token, autoPlayStory, onCle
                   <span className="text-[10px] text-stone-500 mt-1">
                     {t('archiveFileSupportTypes')}
                   </span>
-                </label>
+                </div>
               </div>
             )}
 

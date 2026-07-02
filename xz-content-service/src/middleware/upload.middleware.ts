@@ -53,6 +53,8 @@ export const handleSingleUpload = (fieldName: string) => {
           maxSize = FileService.MAX_SIZES.video; // 100MB
         } else if (category === FileCategory.AUDIO) {
           maxSize = FileService.MAX_SIZES.audio; // 25MB
+        } else if (category === FileCategory.DOCUMENT) {
+          maxSize = FileService.MAX_SIZES.document; // 50MB
         }
 
         if (file.size > maxSize) {
@@ -135,6 +137,7 @@ export const handleMultipleUpload = (fieldName: string, maxCount = 10) => {
         if (category === FileCategory.IMAGE) maxSize = FileService.MAX_SIZES.image;
         else if (category === FileCategory.VIDEO) maxSize = FileService.MAX_SIZES.video;
         else if (category === FileCategory.AUDIO) maxSize = FileService.MAX_SIZES.audio;
+        else if (category === FileCategory.DOCUMENT) maxSize = FileService.MAX_SIZES.document;
 
         if (file.size > maxSize) {
           const sizeMB = maxSize / (1024 * 1024);

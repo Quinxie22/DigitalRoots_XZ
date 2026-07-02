@@ -175,6 +175,14 @@ export default function InterviewManager({ currentUser, token }: InterviewManage
 
   const startLiveSession = async (interview: any) => {
     try {
+      if (typeof window !== 'undefined' && !window.isSecureContext) {
+        setError('Microphone access is blocked: Browsers restrict media devices to secure contexts (HTTPS or localhost). Please deploy with SSL/HTTPS or run locally.');
+        return;
+      }
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        setError('Microphone recording is not supported in this browser environment or requires a secure context (HTTPS).');
+        return;
+      }
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       audioChunksRef.current = [];
       const mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
