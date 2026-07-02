@@ -7,6 +7,16 @@
     <meta name="theme-color" content="#78716c" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Digital Roots</title>
+    <script>
+      // crypto.randomUUID Polyfill for non-secure HTTP contexts (e.g. EC2 raw IP)
+      if (typeof window !== 'undefined' && window.crypto && !window.crypto.randomUUID) {
+        window.crypto.randomUUID = function() {
+          return ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, function(c) {
+            return (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16);
+          });
+        };
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>
