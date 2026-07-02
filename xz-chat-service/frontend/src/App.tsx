@@ -1453,45 +1453,6 @@ export default function App() {
                         {displayName}
                       </span>
                     </div>
-                    
-                    {activeThread?.discussionTopic && (
-                      <div className="flex items-center gap-1.5 text-[10px] mt-0.5 truncate select-none text-gray-400">
-                        <span className="font-semibold text-red-500 whitespace-nowrap" style={{ color: 'var(--primary)' }}>TOPIC:</span>
-                        {isEditingTopic ? (
-                          <div className="flex items-center gap-1.5 w-full">
-                            <input
-                              type="text"
-                              value={topicText}
-                              onChange={(e) => setTopicText(e.target.value)}
-                              onKeyDown={(e) => {
-                                if (e.key === 'Enter') handleUpdateTopic();
-                                if (e.key === 'Escape') setIsEditingTopic(false);
-                              }}
-                              className="px-2 py-0.5 rounded outline-none border text-white text-xs flex-1 bg-[#1a1a26]"
-                              style={{ borderColor: 'var(--primary)' }}
-                              autoFocus
-                            />
-                            <button onClick={handleUpdateTopic} className="text-green-500 hover:text-green-400">
-                              <Check size={13} />
-                            </button>
-                            <button onClick={() => setIsEditingTopic(false)} className="text-red-500 hover:text-red-400">
-                              <X size={13} />
-                            </button>
-                          </div>
-                        ) : (
-                          <div className="flex items-center gap-1.5 truncate group cursor-pointer"
-                               onClick={() => {
-                                 setTopicText(activeThread?.discussionTopic || '');
-                                 setIsEditingTopic(true);
-                               }}>
-                            <span className="truncate italic text-stone-505 dark:text-stone-400">
-                              "{activeThread?.discussionTopic ?? ''}"
-                            </span>
-                            <Edit3 size={11} className="opacity-70 md:opacity-0 md:group-hover:opacity-100 text-stone-400 transition-opacity flex-shrink-0" />
-                          </div>
-                        )}
-                      </div>
-                    )}
                   </div>
                 </div>
 
@@ -1533,30 +1494,6 @@ export default function App() {
                         <X size={16} />
                       </button>
                     </div>
-                    <div className="mb-3">
-                      <label className="text-[10px] uppercase font-bold text-stone-500 dark:text-stone-400 block mb-1">Discussion Topic (Required)</label>
-                      <input
-                        type="text"
-                        placeholder="e.g. History session, recipes..."
-                        value={newTopic}
-                        onChange={(e) => {
-                          setNewTopic(e.target.value);
-                          setTopicError(false);
-                        }}
-                        className={`w-full px-3 py-2 text-xs rounded-xl border outline-none ${
-                          topicError ? 'border-red-500 bg-red-500/5' : ''
-                        }`}
-                        style={{
-                          background: 'var(--bg-elevated)',
-                          borderColor: topicError ? undefined : 'var(--border)',
-                          color: 'var(--text-primary)'
-                        }}
-                        autoFocus
-                      />
-                      {topicError && (
-                        <span className="text-[9px] text-red-500 mt-1 block">A discussion topic is required to start a connection.</span>
-                      )}
-                    </div>
                     <div className="space-y-1 max-h-48 overflow-y-auto pr-1">
                       {(() => {
                         const usersJson = localStorage.getItem('users_list') || sessionStorage.getItem('users_list');
@@ -1572,12 +1509,8 @@ export default function App() {
                           <button
                             key={u.id}
                             onClick={async () => {
-                              if (!newTopic.trim()) {
-                                setTopicError(true);
-                                return;
-                              }
                               try {
-                                const thread = await getOrCreateThread(currentUser.id, u.id, newTopic);
+                                const thread = await getOrCreateThread(currentUser.id, u.id, 'General');
                                 setShowNewChat(false);
                                 setNewTopic('');
                                 setTopicError(false);

@@ -157,7 +157,7 @@ export default function Sidebar({ currentUser, selectedThreadId, onSelectThread,
 
   const startNewChat = async (targetId: string) => {
     try {
-      const thread = await getOrCreateThread(currentUser.id, targetId, newTopic);
+      const thread = await getOrCreateThread(currentUser.id, targetId, 'General');
       setShowNewChat(false);
       setNewTopic('');
       await load();
@@ -250,30 +250,6 @@ export default function Sidebar({ currentUser, selectedThreadId, onSelectThread,
                 <X size={14} />
               </button>
             </div>
-            <div className="mb-3">
-              <label className="text-[10px] uppercase font-bold text-stone-500 dark:text-stone-400 block mb-1">Discussion Topic (Required)</label>
-              <input 
-                type="text" 
-                placeholder="e.g. History session, recipes..." 
-                value={newTopic} 
-                onChange={(e) => {
-                  setNewTopic(e.target.value);
-                  setTopicError(false);
-                }}
-                className={`w-full px-3 py-2 text-xs rounded-xl border outline-none ${
-                  topicError ? 'border-red-500 bg-red-500/5' : ''
-                }`}
-                style={{
-                  background: 'var(--bg-card)',
-                  borderColor: topicError ? undefined : 'var(--border)',
-                  color: 'var(--text-primary)',
-                }}
-              />
-              {topicError && (
-                <span className="text-[9px] text-red-500 mt-1 block">A discussion topic is required to start a connection.</span>
-              )}
-            </div>
-
             <div className="space-y-1 max-h-48 overflow-y-auto pr-1">
               {(() => {
                 const usersJson = localStorage.getItem('users_list') || sessionStorage.getItem('users_list');
@@ -289,10 +265,6 @@ export default function Sidebar({ currentUser, selectedThreadId, onSelectThread,
                   <button
                     key={u.id}
                     onClick={() => {
-                      if (!newTopic.trim()) {
-                        setTopicError(true);
-                        return;
-                      }
                       startNewChat(u.id);
                     }}
                     className="w-full flex items-center gap-3 p-2 rounded-xl text-left transition-colors hover:bg-opacity-80 mb-1"
