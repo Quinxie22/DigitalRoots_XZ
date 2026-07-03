@@ -37,6 +37,13 @@ app.use(cors());
 app.use(helmet({ contentSecurityPolicy: false, crossOriginEmbedderPolicy: false }));
 app.use(morgan('short'));
 
+// Firebase OAuth popup fix — allow popups from same origin
+app.use((_req, res, next) => {
+  res.setHeader('Cross-Origin-Opener-Policy', 'same-origin-allow-popups');
+  res.setHeader('Cross-Origin-Embedder-Policy', 'unsafe-none');
+  next();
+});
+
 // ── Gateway Health Check ─────────────────────────────────────────────────────
 
 app.get('/health', (_req, res) => {
@@ -69,11 +76,15 @@ function proxyTo(target: string, prefix: string, wsSupport = false): Options {
     target,
     changeOrigin: true,
     ws: wsSupport,
-    // Add pathRewrite because Express app.use('/prefix', ...) strips the prefix
-    // from req.url before it reaches http-proxy-middleware.
-    pathRewrite: (path, req) => {
+    // Express app.use('/prefix', ...) strips the prefix from req.url BEFORE
+    // http-proxy-middleware sees it. So we always re-prepend it so the
+    // downstream service receives the full path (e.g. /api/notifications/abc).
+    pathRewrite: (path) => {
+      // Avoid double-prefix if path already starts with prefix (safety guard)
       if (path.startsWith(prefix)) return path;
-      return `${prefix}${path}`;
+      // Strip leading slash from path to avoid double slash
+      const cleanPath = path.startsWith('/') ? path : `/${path}`;
+      return `${prefix}${cleanPath}`;
     },
     // Log proxy errors but don't crash
     on: {
