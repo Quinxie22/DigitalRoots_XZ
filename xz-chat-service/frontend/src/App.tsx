@@ -396,11 +396,16 @@ export default function App() {
   } = useWebRTC(currentUser?.id || '', selectedThreadId || '');
 
   // Auto-scroll messages to bottom
-  const scrollToBottom = useCallback(() => {
+  const scrollToBottom = useCallback((instant = false) => {
     setTimeout(() => {
-      // block:'end' ensures only the messages pane scrolls, not the outer page
-      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
-    }, 100);
+      if (!messagesEndRef.current) return;
+      if (instant) {
+        // Jump immediately on first load — no animation so user sees latest message right away
+        messagesEndRef.current.scrollIntoView({ behavior: 'instant' as ScrollBehavior, block: 'end' });
+      } else {
+        messagesEndRef.current.scrollIntoView({ behavior: 'smooth', block: 'end' });
+      }
+    }, 50);
   }, []);
 
   const handleScroll = () => {
@@ -614,11 +619,16 @@ export default function App() {
           discussionTopic: msgs[0]?.threadTopic || data.threadTopic || ''
         });
         
-        // Only scroll when there are messages — prevents unwanted page jump on empty threads
-        if (msgs.length > 0) scrollToBottom();
+        // Instant scroll on initial load — user lands on latest message, not the top
+        if (msgs.length > 0) scrollToBottom(true);
         setShowScrollBottom(false);
         // Mark messages as read on the backend
         await markMessagesAsRead(currentUser.id, selectedThreadId);
+        // Also dismiss chat_message notifications for this thread from local state
+        // so the badge clears immediately without waiting for next fetch
+        setNotifications(prev => prev.filter(
+          n => !(n.type === 'chat_message' && n.referenceId === selectedThreadId)
+        ));
       } catch (err) {
         console.error('Error loading messages:', err);
       } finally {
