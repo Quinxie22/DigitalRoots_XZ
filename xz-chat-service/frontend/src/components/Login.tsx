@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import type { User } from '../types';
 import { Loader, Mail, Lock, User as UserIcon, ArrowRight, BookOpen, Sparkles, Heart } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
@@ -51,7 +51,7 @@ export default function Login({ onLogin }: LoginProps) {
   const [resetSent, setResetSent] = useState(false);
   const [resetError, setResetError] = useState('');
 
-  // State for post-Google Sign-In modals (role selection → onboarding)
+  // State for post-Google Sign-In modals (role selection â†’ onboarding)
   const [pendingGoogleUser, setPendingGoogleUser] = useState<{
     firebaseUid: string; email: string; name: string;
   } | null>(null);
@@ -71,7 +71,7 @@ export default function Login({ onLogin }: LoginProps) {
     };
   }, []);
 
-  // ── Forgot Password ──────────────────────────────────────────────────────
+  // â”€â”€ Forgot Password â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const handleForgotPassword = async (e: React.FormEvent) => {
     e.preventDefault();
     setResetError('');
@@ -91,7 +91,7 @@ export default function Login({ onLogin }: LoginProps) {
     }
   };
 
-  // ── Email / Password Submit ──────────────────────────────────────────────
+  // â”€â”€ Email / Password Submit â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
@@ -99,7 +99,7 @@ export default function Login({ onLogin }: LoginProps) {
 
     try {
       if (isRegister) {
-        // ── REGISTRATION ────────────────────────────────────────────────────
+        // â”€â”€ REGISTRATION â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         // 1. Create Firebase account (for credential management)
         const credential = await createUserWithEmailAndPassword(auth, email, password);
         const idToken     = await credential.user.getIdToken();
@@ -119,7 +119,7 @@ export default function Login({ onLogin }: LoginProps) {
         }
 
       } else {
-        // ── LOGIN ───────────────────────────────────────────────────────────
+        // â”€â”€ LOGIN â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         // Attempt Firebase authentication first (works for Firebase-registered users)
         try {
           const credential = await signInWithEmailAndPassword(auth, email, password);
@@ -137,13 +137,13 @@ export default function Login({ onLogin }: LoginProps) {
           }
 
         } catch (firebaseErr: any) {
-          // ── Legacy fallback: user exists only in MongoDB (pre-Firebase) ──
+          // â”€â”€ Legacy fallback: user exists only in MongoDB (pre-Firebase) â”€â”€
           const legacyCodes = [
             'auth/user-not-found',
             'auth/invalid-credential',
             'auth/wrong-password',
             'auth/invalid-email',
-            'auth/configuration-not-found', // Firebase not yet configured → always fallback
+            'auth/configuration-not-found', // Firebase not yet configured â†’ always fallback
           ];
           if (legacyCodes.some(c => firebaseErr.code?.startsWith(c) || firebaseErr.code === c)) {
             const res = await fetch(`${USER_SERVICE_URL}/api/users/login`, {
@@ -181,7 +181,7 @@ export default function Login({ onLogin }: LoginProps) {
     }
   };
 
-  // ── Google Sign-In ───────────────────────────────────────────────────────
+  // â”€â”€ Google Sign-In â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const handleGoogleSignIn = async () => {
     setError('');
     setGoogleLoading(true);
@@ -189,12 +189,12 @@ export default function Login({ onLogin }: LoginProps) {
       const credential = await signInWithPopup(auth, googleProvider);
       const idToken     = await credential.user.getIdToken();
 
-      // Send to backend without a role — backend decides if this is new or returning
+      // Send to backend without a role â€” backend decides if this is new or returning
       const { data, ok } = await exchangeFirebaseToken(idToken);
       if (!ok) throw new Error(data.message || 'Google Sign-In failed');
 
       if (data.needsRoleSelection) {
-        // Brand-new Google user — show role picker before profile creation
+        // Brand-new Google user â€” show role picker before profile creation
         setPendingGoogleUser({ firebaseUid: data.firebaseUid, email: data.email, name: data.name });
         setPendingGoogleToken(idToken);
       } else {
@@ -215,7 +215,7 @@ export default function Login({ onLogin }: LoginProps) {
     }
   };
 
-  // ── Callbacks from child modals ──────────────────────────────────────────
+  // â”€â”€ Callbacks from child modals â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const handleRoleSelected = (user: User, token: string, needsOnboarding: boolean) => {
     setPendingGoogleUser(null);
     sessionStorage.setItem('token', token);
@@ -233,7 +233,7 @@ export default function Login({ onLogin }: LoginProps) {
     onLogin(updatedUser);
   };
 
-  // ── Render modals ────────────────────────────────────────────────────────
+  // â”€â”€ Render modals â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   if (pendingGoogleUser) {
     return (
       <RoleSelectionModal
@@ -255,7 +255,7 @@ export default function Login({ onLogin }: LoginProps) {
     );
   }
 
-  // ── Heritage Introductory Welcome Screen ──────────────────────────────────
+  // -- Heritage Introductory Welcome Screen --
   if (view === 'welcome') {
     return (
       <div
@@ -270,178 +270,184 @@ export default function Login({ onLogin }: LoginProps) {
         }}
         className="font-serif selection:bg-[#E23E3E]/20"
       >
-        
-        {/* Fine gold line top border decoration */}
-        <div className="h-1 w-full bg-[#E5D2C0]" />
-
-        {/* 1. Header Navigation */}
-        <header className="max-w-7xl mx-auto px-6 py-6 flex items-center justify-between border-b border-[#EADFCF] select-none">
-          <div className="flex items-center gap-3">
-            <img src="/logo.svg" alt="Digital Roots" className="w-9 h-9 flex-shrink-0 shadow-md rounded-xl" />
-            <span className="text-2xl font-bold tracking-tight uppercase text-[#4C1212] font-sans">Digital Roots</span>
-          </div>
-          
-          <div className="flex items-center gap-6 font-sans">
-            <button 
-              onClick={() => { setIsRegister(false); setView('login'); setError(''); }}
-              className="text-sm font-bold text-[#4C1212] hover:opacity-80 transition-all cursor-pointer"
-            >
-              Sign In
-            </button>
-            <button 
-              onClick={() => { setIsRegister(true); setView('register'); setError(''); }}
-              className="px-5 py-2.5 rounded-full bg-[#4C1212] hover:bg-[#6B1D1D] text-white text-xs uppercase font-bold tracking-wider transition-all cursor-pointer shadow-md"
-            >
-              Join Now
-            </button>
+        {/* 1. Sticky Nav */}
+        <header style={{ position: 'sticky', top: 0, zIndex: 100, backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', background: 'rgba(252,251,249,0.9)', borderBottom: '1px solid #EADFCF' }}>
+          <div className="max-w-7xl mx-auto px-5 py-4 flex items-center justify-between select-none">
+            <div className="flex items-center gap-2.5">
+              <img src="/logo.svg" alt="Digital Roots" className="w-9 h-9 flex-shrink-0 rounded-xl shadow" />
+              <span className="text-xl font-extrabold tracking-tight text-[#4C1212] font-sans uppercase">Digital Roots</span>
+            </div>
+            <div className="flex items-center gap-4 font-sans">
+              <button type="button" onClick={() => { setIsRegister(false); setView('login'); setError(''); }}
+                className="text-sm font-semibold text-[#4C1212] hover:opacity-70 transition-opacity cursor-pointer hidden sm:block">
+                Sign In
+              </button>
+              <button type="button" onClick={() => { setIsRegister(true); setView('register'); setError(''); }}
+                className="px-5 py-2.5 rounded-full bg-[#4C1212] hover:bg-[#6B1D1D] text-white text-xs uppercase font-bold tracking-wider transition-all cursor-pointer shadow-md active:scale-95">
+                Join Free
+              </button>
+            </div>
           </div>
         </header>
 
-        {/* 2. Hero Section */}
-        <section className="max-w-7xl mx-auto px-6 py-12 md:py-24 grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-          <div className="space-y-6 max-w-xl text-left">
-            <p className="text-sm font-bold tracking-widest text-[#E23E3E] uppercase font-sans">Where Generations Meet & Wisdom Flows</p>
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold leading-tight text-[#4C1212] font-serif">
-              Bridging <br className="hidden md:inline"/> Generations.
-            </h1>
-            <p className="text-lg md:text-xl italic text-[#5C4D44] font-serif leading-relaxed">
-              "Every generation has something to teach — and something to learn. Digital Roots is where they meet."
-            </p>
-            
-            <div className="flex flex-col sm:flex-row gap-4 pt-4 font-sans">
-              <button
-                onClick={() => { setIsRegister(true); setView('register'); setError(''); }}
-                className="px-6 py-3.5 rounded-xl bg-[#4C1212] hover:bg-[#6B1D1D] text-white font-extrabold text-sm uppercase tracking-wider transition-all hover:scale-[1.01] active:scale-[0.99] cursor-pointer shadow-lg shadow-[#4c1212]/10"
-              >
-                Join the Community
-              </button>
-              <button
-                onClick={() => { setIsRegister(false); setView('login'); setError(''); }}
-                className="px-6 py-3.5 rounded-xl border border-[#EADFCF] hover:bg-[#FAF6F0] text-[#4C1212] font-extrabold text-sm uppercase tracking-wider transition-all hover:scale-[1.01] active:scale-[0.99] cursor-pointer"
-              >
-                Sign In
-              </button>
+        {/* 2. Cinematic Hero with real photo */}
+        <section style={{ position: 'relative', minHeight: '92vh', display: 'flex', alignItems: 'center' }}>
+          <img src="/hero-generations.png" alt="Grandmother and granddaughter connecting"
+            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center top' }} />
+          <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(110deg, rgba(28,8,4,0.88) 0%, rgba(76,18,18,0.6) 55%, rgba(0,0,0,0.1) 100%)' }} />
+          <div className="relative max-w-7xl mx-auto px-6 py-24 w-full">
+            <div className="max-w-2xl space-y-7">
+              <span className="inline-block px-4 py-1.5 rounded-full text-xs font-bold tracking-widest uppercase font-sans"
+                style={{ background: 'rgba(226,62,62,0.2)', color: '#FFBCBC', border: '1px solid rgba(226,62,62,0.4)' }}>
+                Where Generations Meet &amp; Wisdom Flows
+              </span>
+              <h1 className="text-5xl md:text-6xl lg:text-7xl font-extrabold leading-[1.05] text-white font-serif drop-shadow-lg">
+                Bridging<br />Generations.<br />
+                <span style={{ color: '#FFBCBC' }}>Together.</span>
+              </h1>
+              <p className="text-lg md:text-xl text-stone-200 font-sans font-light leading-relaxed max-w-xl">
+                Every generation has something to teach — and something to learn. Digital Roots is the platform where elders and youth truly connect.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-4 pt-2 font-sans">
+                <button type="button" onClick={() => { setIsRegister(true); setView('register'); setError(''); }}
+                  className="px-8 py-4 rounded-xl font-extrabold text-sm uppercase tracking-wider transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer shadow-xl"
+                  style={{ background: '#E23E3E', color: 'white' }}>
+                  Join the Community →
+                </button>
+                <button type="button" onClick={() => { setIsRegister(false); setView('login'); setError(''); }}
+                  className="px-8 py-4 rounded-xl font-extrabold text-sm uppercase tracking-wider transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
+                  style={{ background: 'rgba(255,255,255,0.12)', color: 'white', border: '1.5px solid rgba(255,255,255,0.35)', backdropFilter: 'blur(8px)' }}>
+                  Sign In
+                </button>
+              </div>
             </div>
           </div>
-
-          {/* Styled Heritage Photo Frame */}
-          <div className="flex justify-center select-none">
-            <div className="p-4 bg-[#FAF7F2] border border-[#EADFCF] rounded-3xl shadow-xl hover:rotate-1 transition-transform duration-500 max-w-md w-full relative">
-              <div className="aspect-[4/3] rounded-2xl overflow-hidden bg-[#EADFCF]/30 border border-[#E5D2C0] flex items-center justify-center flex-col p-8 text-center space-y-4">
-                <div className="w-14 h-14 rounded-full bg-[#4C1212]/5 flex items-center justify-center text-red-700">
-                  <Sparkles size={28} />
-                </div>
-                <h4 className="font-serif font-bold text-xl text-[#4C1212]">Generational Bridges</h4>
-                <p className="text-sm text-[#5C4D44] max-w-xs leading-relaxed font-sans">
-                  A living network where elders mentor youth, and younger generations connect with the lived experience and wisdom of those who came before them.
-                </p>
+          {/* Floating stats bar */}
+          <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0 }}>
+            <div className="max-w-5xl mx-auto px-6">
+              <div className="grid grid-cols-3 gap-px rounded-t-2xl overflow-hidden font-sans"
+                style={{ background: 'rgba(255,255,255,0.07)', backdropFilter: 'blur(20px)', border: '1px solid rgba(255,255,255,0.15)', borderBottom: 'none' }}>
+                {([['5,000+','Members Connected'],['120+','Elders Mentoring'],['40+','Communities Joined']] as [string,string][]).map(([num, label]) => (
+                  <div key={label} className="py-5 px-6 text-center">
+                    <div className="text-2xl font-extrabold text-white">{num}</div>
+                    <div className="text-xs text-stone-300 mt-1 uppercase tracking-wider">{label}</div>
+                  </div>
+                ))}
               </div>
-              {/* Photo Caption Label */}
-              <div className="text-center pt-3 text-xs font-bold text-stone-500 uppercase tracking-widest font-sans">
-                Digital Roots Community — Est. 2026
+            </div>
+          </div>
+        </section>
+
+        {/* 3. Image Feature Cards */}
+        <section className="py-20 md:py-28" style={{ background: '#FAF7F2' }}>
+          <div className="max-w-7xl mx-auto px-6">
+            <div className="text-center space-y-3 mb-14">
+              <p className="text-xs font-bold tracking-widest text-[#E23E3E] uppercase font-sans">What We Offer</p>
+              <h2 className="text-3xl md:text-4xl font-extrabold text-[#4C1212] font-serif">A Platform Built for All Generations</h2>
+              <p className="text-base text-[#5C4D44] font-sans max-w-xl mx-auto">Closing the gap between elders and youth through real conversations, mentorship and shared wisdom.</p>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <div className="rounded-3xl overflow-hidden shadow-xl group cursor-pointer" style={{ border: '1px solid #EADFCF', background: 'white' }}
+                onClick={() => { setIsRegister(true); setView('register'); setError(''); }}>
+                <div style={{ position: 'relative', height: 240, overflow: 'hidden' }}>
+                  <img src="/wisdom-mentorship.png" alt="Elder mentoring youth"
+                    style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center', transition: 'transform 0.6s ease' }}
+                    className="group-hover:scale-105" />
+                  <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(30,5,5,0.65), transparent)' }} />
+                  <div style={{ position: 'absolute', bottom: 16, left: 20 }}>
+                    <span className="px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider font-sans"
+                      style={{ background: 'rgba(226,62,62,0.85)', color: 'white' }}>Wisdom Hub</span>
+                  </div>
+                </div>
+                <div className="p-7 space-y-3 font-sans">
+                  <h3 className="font-serif font-bold text-xl text-[#4C1212]">Learn from Those Who Lived It</h3>
+                  <p className="text-sm text-[#5C4D44] leading-relaxed">Elders share curated guides, life lessons, cultural knowledge, and mentorship — while younger members gain the insight that only lived experience can provide.</p>
+                  <p className="text-xs font-bold text-[#E23E3E] uppercase tracking-wider group-hover:underline">Explore Wisdom →</p>
+                </div>
+              </div>
+              <div className="rounded-3xl overflow-hidden shadow-xl group cursor-pointer" style={{ border: '1px solid #EADFCF', background: 'white' }}
+                onClick={() => { setIsRegister(true); setView('register'); setError(''); }}>
+                <div style={{ position: 'relative', height: 240, overflow: 'hidden' }}>
+                  <img src="/community-connect.png" alt="Multigenerational community"
+                    style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center', transition: 'transform 0.6s ease' }}
+                    className="group-hover:scale-105" />
+                  <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(30,5,5,0.65), transparent)' }} />
+                  <div style={{ position: 'absolute', bottom: 16, left: 20 }}>
+                    <span className="px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider font-sans"
+                      style={{ background: 'rgba(76,18,18,0.85)', color: 'white' }}>Generational Connect</span>
+                  </div>
+                </div>
+                <div className="p-7 space-y-3 font-sans">
+                  <h3 className="font-serif font-bold text-xl text-[#4C1212]">No Generation Left Behind</h3>
+                  <p className="text-sm text-[#5C4D44] leading-relaxed">Break down barriers between age groups through real conversations, voice recordings, group mentoring, and collaborative archives — so no generation feels alone or unheard.</p>
+                  <p className="text-xs font-bold text-[#E23E3E] uppercase tracking-wider group-hover:underline">Join the Conversation →</p>
+                </div>
               </div>
             </div>
           </div>
         </section>
 
-        {/* 3. Features Section */}
-        <section className="bg-[#FAF7F2] border-y border-[#EADFCF] py-16 md:py-24">
-          <div className="max-w-7xl mx-auto px-6 space-y-12 text-center">
-            <div className="space-y-3">
-              <span className="text-2xl text-[#E23E3E]">❧</span>
-              <h2 className="text-3xl md:text-4xl font-extrabold font-serif text-[#4C1212]">A Platform Built for All Generations</h2>
-              <p className="text-sm text-[#5C4D44] uppercase tracking-wider font-semibold font-sans">Connecting elders and youth — closing the generational gap</p>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto text-left font-sans">
-              
-              {/* Wisdom Hub Feature Card */}
-              <div className="bg-white border border-[#EADFCF] p-6 md:p-8 rounded-3xl space-y-4 hover:shadow-lg transition-all duration-300">
-                <div className="w-11 h-11 rounded-2xl bg-[#E23E3E]/10 flex items-center justify-center text-[#E23E3E]">
-                  <Heart size={20} />
-                </div>
-                <h3 className="font-serif font-bold text-xl text-[#4C1212]">Wisdom Hub</h3>
-                <p className="text-sm text-[#5C4D44] leading-relaxed">
-                  A living bridge between generations. Elders share curated guides, life lessons, cultural knowledge, and mentorship — while younger members gain the insight and grounding that only lived experience can provide.
-                </p>
-              </div>
-
-              {/* Community & Connection Feature Card */}
-              <div className="bg-white border border-[#EADFCF] p-6 md:p-8 rounded-3xl space-y-4 hover:shadow-lg transition-all duration-300">
-                <div className="w-11 h-11 rounded-2xl bg-[#4C1212]/10 flex items-center justify-center text-[#4C1212]">
-                  <BookOpen size={20} />
-                </div>
-                <h3 className="font-serif font-bold text-xl text-[#4C1212]">Generational Connect</h3>
-                <p className="text-sm text-[#5C4D44] leading-relaxed">
-                  Break down barriers between age groups through real conversations, shared voice recordings, group mentoring, and collaborative digital archives — so no generation ever feels alone or unheard.
-                </p>
-              </div>
-
-            </div>
-          </div>
-        </section>
-
-        {/* 4. Timeless Quote Section */}
-        <section className="max-w-4xl mx-auto px-6 py-16 md:py-24 text-center">
-          <div className="space-y-6">
-            <span className="text-3xl text-stone-300 font-serif">“</span>
-            <p className="text-xl md:text-2xl font-serif italic text-[#4C1212] leading-relaxed max-w-2xl mx-auto">
+        {/* 4. Quote Band */}
+        <section className="py-20 text-center px-6" style={{ background: '#4C1212' }}>
+          <div className="max-w-3xl mx-auto space-y-5">
+            <div className="text-5xl font-serif leading-none" style={{ color: 'rgba(255,188,188,0.35)' }}>"</div>
+            <p className="text-xl md:text-2xl font-serif italic text-white leading-relaxed">
               The bond between generations is the most powerful force in any society. When elders and youth truly listen to each other, entire communities are transformed.
             </p>
-            <div className="w-12 h-0.5 bg-[#E23E3E]/30 mx-auto rounded-full" />
-            <p className="text-xs text-[#5C4D44] uppercase tracking-wider font-extrabold font-sans">Digital Roots — Our Mission</p>
+            <div className="w-10 h-0.5 mx-auto rounded-full" style={{ background: 'rgba(255,188,188,0.35)' }} />
+            <p className="text-xs uppercase tracking-widest font-bold font-sans" style={{ color: 'rgba(255,188,188,0.6)' }}>Digital Roots — Our Mission</p>
           </div>
         </section>
 
-        {/* 5. Bottom Call to Action Section */}
-        <section className="bg-[#4C1212] text-white py-16 md:py-24">
-          <div className="max-w-3xl mx-auto px-6 text-center space-y-6">
-            <h2 className="text-3xl md:text-4xl font-serif font-extrabold">Connecting Generations, Together.</h2>
+        {/* 5. Full-photo CTA */}
+        <section style={{ position: 'relative', minHeight: 420, display: 'flex', alignItems: 'center' }}>
+          <img src="/hero-generations.png" alt="Community"
+            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', filter: 'brightness(0.28)' }} />
+          <div className="relative max-w-3xl mx-auto px-6 py-20 text-center space-y-6 w-full">
+            <h2 className="text-3xl md:text-4xl font-serif font-extrabold text-white">Connecting Generations, Together.</h2>
             <p className="text-base md:text-lg font-sans text-stone-300 max-w-xl mx-auto leading-relaxed">
               Join our growing community of elders and youth, dedicated to closing the generational gap through real conversations, mentorship, and shared wisdom.
             </p>
-            <div className="pt-4 font-sans">
-              <button
-                onClick={() => { setIsRegister(true); setView('register'); setError(''); }}
-                className="px-8 py-4 rounded-xl bg-white hover:bg-[#FCFBF9] text-[#4C1212] font-extrabold text-sm uppercase tracking-wider transition-all hover:scale-[1.01] active:scale-[0.99] cursor-pointer shadow-lg"
-              >
-                Join the Movement
-              </button>
-            </div>
+            <button type="button" onClick={() => { setIsRegister(true); setView('register'); setError(''); }}
+              className="px-10 py-4 rounded-xl font-extrabold text-sm uppercase tracking-wider transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer shadow-2xl font-sans"
+              style={{ background: '#E23E3E', color: 'white' }}>
+              Join the Movement — It's Free
+            </button>
           </div>
         </section>
 
         {/* 6. Footer */}
-        <footer className="bg-[#1A110D] text-stone-400 py-12 border-t border-stone-850 font-sans">
+        <footer style={{ background: '#110A07', color: '#9C8F8A' }} className="py-12 font-sans">
           <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
-            <div className="space-y-3 text-left">
-              <span className="text-xl font-bold uppercase text-white">Digital Roots</span>
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <img src="/logo.svg" alt="Digital Roots" className="w-7 h-7 rounded-lg" />
+                <span className="text-base font-bold uppercase text-white">Digital Roots</span>
+              </div>
               <p className="text-sm text-stone-500 max-w-sm leading-relaxed">
-                A platform dedicated to bridging the gap between generations — connecting elders and youth through mentorship, shared wisdom, and meaningful dialogue.
+                Bridging the gap between generations — connecting elders and youth through mentorship, shared wisdom, and meaningful dialogue.
               </p>
             </div>
-            
-            <div className="flex gap-16 md:justify-end text-xs text-left">
+            <div className="flex gap-14 md:justify-end text-sm">
               <div className="space-y-2">
-                <span className="font-bold text-white uppercase tracking-wider text-[10px]">Heritage</span>
-                <ul className="space-y-1.5 text-stone-500">
-                  <li className="hover:text-stone-300 cursor-pointer">Our Story</li>
-                  <li className="hover:text-stone-300 cursor-pointer">The Philosophy</li>
-                  <li className="hover:text-stone-300 cursor-pointer">Archive Guidelines</li>
+                <span className="font-bold text-white uppercase tracking-wider text-xs">Platform</span>
+                <ul className="space-y-2 text-stone-500">
+                  <li className="hover:text-stone-300 cursor-pointer transition-colors">Wisdom Hub</li>
+                  <li className="hover:text-stone-300 cursor-pointer transition-colors">Generational Connect</li>
+                  <li className="hover:text-stone-300 cursor-pointer transition-colors">Mentoring Program</li>
                 </ul>
               </div>
               <div className="space-y-2">
-                <span className="font-bold text-white uppercase tracking-wider text-[10px]">Legacy</span>
-                <ul className="space-y-1.5 text-stone-500">
-                  <li className="hover:text-stone-300 cursor-pointer">Wisdom Guides</li>
-                  <li className="hover:text-stone-300 cursor-pointer">Memoir Audio</li>
-                  <li className="hover:text-stone-300 cursor-pointer">Write Articles</li>
+                <span className="font-bold text-white uppercase tracking-wider text-xs">Join</span>
+                <ul className="space-y-2 text-stone-500">
+                  <li className="hover:text-stone-300 cursor-pointer transition-colors" onClick={() => { setIsRegister(true); setView('register'); setError(''); }}>Create Account</li>
+                  <li className="hover:text-stone-300 cursor-pointer transition-colors" onClick={() => { setIsRegister(false); setView('login'); setError(''); }}>Sign In</li>
                 </ul>
               </div>
             </div>
           </div>
-          <div className="max-w-7xl mx-auto px-6 pt-12 text-center text-[10px] text-stone-600 border-t border-stone-800/40 mt-8">
-            &copy; 2026 Digital Roots. All rights reserved. Preserving history, one voice at a time.
+          <div className="max-w-7xl mx-auto px-6 pt-8 mt-8 text-center text-xs text-stone-700 border-t border-stone-800/50">
+            © 2026 Digital Roots. Bridging generations, preserving legacies.
           </div>
         </footer>
 
@@ -449,9 +455,9 @@ export default function Login({ onLogin }: LoginProps) {
     );
   }
 
-  // ── Main Login / Register Form ───────────────────────────────────────────
+  // â”€â”€ Main Login / Register Form â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-  // ── Forgot Password Panel ────────────────────────────────────────────────
+  // â”€â”€ Forgot Password Panel â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   if (showForgotPassword) {
     return (
       <div className="min-h-screen w-full flex items-center justify-center bg-[var(--bg-dark)] p-4">
@@ -466,7 +472,7 @@ export default function Login({ onLogin }: LoginProps) {
             <p className="text-xs text-stone-400 leading-relaxed">
               Enter your email address and we'll send you a link to reset your password.
               <br />
-              <span className="text-stone-500">Google Sign-In users don't have a password — just click "Sign in with Google" instead.</span>
+              <span className="text-stone-500">Google Sign-In users don't have a password â€” just click "Sign in with Google" instead.</span>
             </p>
           </div>
 
@@ -474,7 +480,7 @@ export default function Login({ onLogin }: LoginProps) {
             /* Success state */
             <div className="space-y-5">
               <div className="p-4 rounded-2xl border border-emerald-500/20 bg-emerald-500/5 text-center space-y-2">
-                <div className="text-2xl">✉️</div>
+                <div className="text-2xl">âœ‰ï¸</div>
                 <p className="text-sm font-semibold text-emerald-600 dark:text-emerald-400">Email sent!</p>
                 <p className="text-xs text-stone-500">
                   Check <span className="font-semibold text-stone-700 dark:text-stone-300">{resetEmail}</span> for a password reset link. It may take a minute to arrive.
@@ -530,7 +536,7 @@ export default function Login({ onLogin }: LoginProps) {
                 onClick={() => { setShowForgotPassword(false); setResetError(''); setResetEmail(''); }}
                 className="w-full py-2.5 text-xs text-stone-400 hover:text-stone-600 dark:hover:text-stone-200 transition-colors"
               >
-                ← Back to login
+                â† Back to login
               </button>
             </form>
           )}
@@ -539,7 +545,7 @@ export default function Login({ onLogin }: LoginProps) {
     );
   }
 
-  // ── Main Login / Register Form (original) ────────────────────────────────
+  // â”€â”€ Main Login / Register Form (original) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   return (
     <div className="min-h-screen w-full flex flex-col md:flex-row bg-[var(--bg-dark)] font-sans">
 
@@ -609,7 +615,7 @@ export default function Login({ onLogin }: LoginProps) {
             </div>
           )}
 
-          {/* ── Google Sign-In Button ── */}
+          {/* â”€â”€ Google Sign-In Button â”€â”€ */}
           <button
             type="button"
             onClick={handleGoogleSignIn}
@@ -637,7 +643,7 @@ export default function Login({ onLogin }: LoginProps) {
             <div className="flex-1 h-px bg-stone-200 dark:bg-stone-800" />
           </div>
 
-          {/* ── Email / Password Form ── */}
+          {/* â”€â”€ Email / Password Form â”€â”€ */}
           <form onSubmit={handleSubmit} className="space-y-5">
 
             {isRegister && (
@@ -775,7 +781,7 @@ export default function Login({ onLogin }: LoginProps) {
               onClick={() => { setView('welcome'); setError(''); }}
               className="text-[11px] transition-colors hover:underline text-stone-400 dark:text-stone-500 mt-2 cursor-pointer"
             >
-              ← Back to Welcome Screen
+              â† Back to Welcome Screen
             </button>
           </div>
         </div>
