@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import type { User } from '../types';
 import { Loader, Mail, Lock, User as UserIcon, ArrowRight, BookOpen, Sparkles, Heart } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
@@ -319,20 +319,6 @@ export default function Login({ onLogin }: LoginProps) {
                   style={{ background: 'rgba(255,255,255,0.12)', color: 'white', border: '1.5px solid rgba(255,255,255,0.35)', backdropFilter: 'blur(8px)' }}>
                   Sign In
                 </button>
-              </div>
-            </div>
-          </div>
-          {/* Floating stats bar */}
-          <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0 }}>
-            <div className="max-w-5xl mx-auto px-6">
-              <div className="grid grid-cols-3 gap-px rounded-t-2xl overflow-hidden font-sans"
-                style={{ background: 'rgba(255,255,255,0.07)', backdropFilter: 'blur(20px)', border: '1px solid rgba(255,255,255,0.15)', borderBottom: 'none' }}>
-                {([['5,000+','Members Connected'],['120+','Elders Mentoring'],['40+','Communities Joined']] as [string,string][]).map(([num, label]) => (
-                  <div key={label} className="py-5 px-6 text-center">
-                    <div className="text-2xl font-extrabold text-white">{num}</div>
-                    <div className="text-xs text-stone-300 mt-1 uppercase tracking-wider">{label}</div>
-                  </div>
-                ))}
               </div>
             </div>
           </div>
