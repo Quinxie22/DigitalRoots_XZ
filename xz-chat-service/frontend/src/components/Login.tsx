@@ -258,7 +258,18 @@ export default function Login({ onLogin }: LoginProps) {
   // ── Heritage Introductory Welcome Screen ──────────────────────────────────
   if (view === 'welcome') {
     return (
-      <div className="min-h-screen w-full bg-[#FCFBF9] text-[#2A1E17] font-serif overflow-y-auto selection:bg-[#E23E3E]/20">
+      <div
+        style={{
+          position: 'fixed',
+          inset: 0,
+          overflowY: 'auto',
+          overflowX: 'hidden',
+          background: '#FCFBF9',
+          color: '#2A1E17',
+          zIndex: 9999,
+        }}
+        className="font-serif selection:bg-[#E23E3E]/20"
+      >
         
         {/* Fine gold line top border decoration */}
         <div className="h-1 w-full bg-[#E5D2C0]" />
@@ -266,34 +277,22 @@ export default function Login({ onLogin }: LoginProps) {
         {/* 1. Header Navigation */}
         <header className="max-w-7xl mx-auto px-6 py-6 flex items-center justify-between border-b border-[#EADFCF] select-none">
           <div className="flex items-center gap-3">
-            <svg className="w-8 h-8 flex-shrink-0 shadow-md" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <rect width="40" height="40" rx="12" fill="url(#welcomeGrad)" />
-              <path d="M11 11L29 29" stroke="white" strokeWidth="3.5" strokeLinecap="round" />
-              <path d="M29 11L23 17" stroke="white" strokeWidth="3.5" strokeLinecap="round" />
-              <path d="M17 23L11 29" stroke="white" strokeWidth="3.5" strokeLinecap="round" />
-              <path d="M13 15H27L13 25H27" stroke="rgba(255,255,255,0.85)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-              <defs>
-                <linearGradient id="welcomeGrad" x1="0" y1="0" x2="40" y2="40" gradientUnits="userSpaceOnUse">
-                  <stop stopColor="#E23E3E" />
-                  <stop stopColor="#8A1E24" />
-                </linearGradient>
-              </defs>
-            </svg>
-            <span className="text-xl font-bold tracking-tight uppercase text-[#4C1212] font-sans">Digital Roots</span>
+            <img src="/logo.svg" alt="Digital Roots" className="w-9 h-9 flex-shrink-0 shadow-md rounded-xl" />
+            <span className="text-2xl font-bold tracking-tight uppercase text-[#4C1212] font-sans">Digital Roots</span>
           </div>
           
           <div className="flex items-center gap-6 font-sans">
             <button 
               onClick={() => { setIsRegister(false); setView('login'); setError(''); }}
-              className="text-xs font-bold text-[#4C1212] hover:opacity-80 transition-all cursor-pointer"
+              className="text-sm font-bold text-[#4C1212] hover:opacity-80 transition-all cursor-pointer"
             >
               Sign In
             </button>
             <button 
               onClick={() => { setIsRegister(true); setView('register'); setError(''); }}
-              className="px-4 py-2.5 rounded-full bg-[#4C1212] hover:bg-[#6B1D1D] text-white text-[10px] uppercase font-bold tracking-wider transition-all cursor-pointer shadow-md"
+              className="px-5 py-2.5 rounded-full bg-[#4C1212] hover:bg-[#6B1D1D] text-white text-xs uppercase font-bold tracking-wider transition-all cursor-pointer shadow-md"
             >
-              Begin Your Journey
+              Join Now
             </button>
           </div>
         </header>
@@ -301,26 +300,26 @@ export default function Login({ onLogin }: LoginProps) {
         {/* 2. Hero Section */}
         <section className="max-w-7xl mx-auto px-6 py-12 md:py-24 grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
           <div className="space-y-6 max-w-xl text-left">
-            <p className="text-xs font-bold tracking-widest text-[#E23E3E] uppercase font-sans">Honor the Past. Inspire the Future.</p>
+            <p className="text-sm font-bold tracking-widest text-[#E23E3E] uppercase font-sans">Where Generations Meet & Wisdom Flows</p>
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold leading-tight text-[#4C1212] font-serif">
-              The Sacred Art <br className="hidden md:inline"/> of Remembering.
+              Bridging <br className="hidden md:inline"/> Generations.
             </h1>
-            <p className="text-base md:text-lg italic text-[#5C4D44] font-serif leading-relaxed">
-              "Every family has a story, and a portion of that story is one you leave behind."
+            <p className="text-lg md:text-xl italic text-[#5C4D44] font-serif leading-relaxed">
+              "Every generation has something to teach — and something to learn. Digital Roots is where they meet."
             </p>
             
             <div className="flex flex-col sm:flex-row gap-4 pt-4 font-sans">
               <button
                 onClick={() => { setIsRegister(true); setView('register'); setError(''); }}
-                className="px-6 py-3.5 rounded-xl bg-[#4C1212] hover:bg-[#6B1D1D] text-white font-extrabold text-xs uppercase tracking-wider transition-all hover:scale-[1.01] active:scale-[0.99] cursor-pointer shadow-lg shadow-[#4c1212]/10"
+                className="px-6 py-3.5 rounded-xl bg-[#4C1212] hover:bg-[#6B1D1D] text-white font-extrabold text-sm uppercase tracking-wider transition-all hover:scale-[1.01] active:scale-[0.99] cursor-pointer shadow-lg shadow-[#4c1212]/10"
               >
-                Start Your Legacy
+                Join the Community
               </button>
               <button
                 onClick={() => { setIsRegister(false); setView('login'); setError(''); }}
-                className="px-6 py-3.5 rounded-xl border border-[#EADFCF] hover:bg-[#FAF6F0] text-[#4C1212] font-extrabold text-xs uppercase tracking-wider transition-all hover:scale-[1.01] active:scale-[0.99] cursor-pointer"
+                className="px-6 py-3.5 rounded-xl border border-[#EADFCF] hover:bg-[#FAF6F0] text-[#4C1212] font-extrabold text-sm uppercase tracking-wider transition-all hover:scale-[1.01] active:scale-[0.99] cursor-pointer"
               >
-                Explore the Archives
+                Sign In
               </button>
             </div>
           </div>
@@ -328,17 +327,17 @@ export default function Login({ onLogin }: LoginProps) {
           {/* Styled Heritage Photo Frame */}
           <div className="flex justify-center select-none">
             <div className="p-4 bg-[#FAF7F2] border border-[#EADFCF] rounded-3xl shadow-xl hover:rotate-1 transition-transform duration-500 max-w-md w-full relative">
-              <div className="aspect-[4/3] rounded-2xl overflow-hidden bg-[#EADFCF]/30 border border-[#E5D2C0] flex items-center justify-center flex-col p-8 text-center space-y-3">
-                <div className="w-12 h-12 rounded-full bg-[#4C1212]/5 flex items-center justify-center text-red-700">
-                  <Sparkles size={24} />
+              <div className="aspect-[4/3] rounded-2xl overflow-hidden bg-[#EADFCF]/30 border border-[#E5D2C0] flex items-center justify-center flex-col p-8 text-center space-y-4">
+                <div className="w-14 h-14 rounded-full bg-[#4C1212]/5 flex items-center justify-center text-red-700">
+                  <Sparkles size={28} />
                 </div>
-                <h4 className="font-serif font-bold text-lg text-[#4C1212]">Generational Bridges</h4>
-                <p className="text-xs text-[#5C4D44] max-w-xs leading-relaxed font-sans">
-                  A dynamic network where elders pass on life lessons, and youth capture timeless records of history and family memories.
+                <h4 className="font-serif font-bold text-xl text-[#4C1212]">Generational Bridges</h4>
+                <p className="text-sm text-[#5C4D44] max-w-xs leading-relaxed font-sans">
+                  A living network where elders mentor youth, and younger generations connect with the lived experience and wisdom of those who came before them.
                 </p>
               </div>
               {/* Photo Caption Label */}
-              <div className="text-center pt-3 text-[10px] font-bold text-stone-500 uppercase tracking-widest font-sans">
+              <div className="text-center pt-3 text-xs font-bold text-stone-500 uppercase tracking-widest font-sans">
                 Digital Roots Community — Est. 2026
               </div>
             </div>
@@ -350,31 +349,31 @@ export default function Login({ onLogin }: LoginProps) {
           <div className="max-w-7xl mx-auto px-6 space-y-12 text-center">
             <div className="space-y-3">
               <span className="text-2xl text-[#E23E3E]">❧</span>
-              <h2 className="text-3xl font-extrabold font-serif text-[#4C1212]">Curating the Human Experience</h2>
-              <p className="text-xs text-[#5C4D44] uppercase tracking-wider font-semibold font-sans">An elegant sanctuary for oral histories and written wisdom</p>
+              <h2 className="text-3xl md:text-4xl font-extrabold font-serif text-[#4C1212]">A Platform Built for All Generations</h2>
+              <p className="text-sm text-[#5C4D44] uppercase tracking-wider font-semibold font-sans">Connecting elders and youth — closing the generational gap</p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto text-left font-sans">
               
               {/* Wisdom Hub Feature Card */}
               <div className="bg-white border border-[#EADFCF] p-6 md:p-8 rounded-3xl space-y-4 hover:shadow-lg transition-all duration-300">
-                <div className="w-10 h-10 rounded-2xl bg-[#E23E3E]/10 flex items-center justify-center text-[#E23E3E]">
-                  <Heart size={18} />
+                <div className="w-11 h-11 rounded-2xl bg-[#E23E3E]/10 flex items-center justify-center text-[#E23E3E]">
+                  <Heart size={20} />
                 </div>
                 <h3 className="font-serif font-bold text-xl text-[#4C1212]">Wisdom Hub</h3>
-                <p className="text-xs text-[#5C4D44] leading-relaxed">
-                  A living bridge between generations. Through curated articles and interactive guides, elders share lessons on history, culture, and life skills to build strong roots for the youth.
+                <p className="text-sm text-[#5C4D44] leading-relaxed">
+                  A living bridge between generations. Elders share curated guides, life lessons, cultural knowledge, and mentorship — while younger members gain the insight and grounding that only lived experience can provide.
                 </p>
               </div>
 
-              {/* Memory Archive Feature Card */}
+              {/* Community & Connection Feature Card */}
               <div className="bg-white border border-[#EADFCF] p-6 md:p-8 rounded-3xl space-y-4 hover:shadow-lg transition-all duration-300">
-                <div className="w-10 h-10 rounded-2xl bg-[#4C1212]/10 flex items-center justify-center text-[#4C1212]">
-                  <BookOpen size={18} />
+                <div className="w-11 h-11 rounded-2xl bg-[#4C1212]/10 flex items-center justify-center text-[#4C1212]">
+                  <BookOpen size={20} />
                 </div>
-                <h3 className="font-serif font-bold text-xl text-[#4C1212]">Memory Archive</h3>
-                <p className="text-xs text-[#5C4D44] leading-relaxed">
-                  An elegant digital archive of dynamic sound clips, oral histories, and memoirs. Play voice files to listen to real memories recorded by ancestors, or upload your own to safeguard family timelines.
+                <h3 className="font-serif font-bold text-xl text-[#4C1212]">Generational Connect</h3>
+                <p className="text-sm text-[#5C4D44] leading-relaxed">
+                  Break down barriers between age groups through real conversations, shared voice recordings, group mentoring, and collaborative digital archives — so no generation ever feels alone or unheard.
                 </p>
               </div>
 
@@ -386,27 +385,27 @@ export default function Login({ onLogin }: LoginProps) {
         <section className="max-w-4xl mx-auto px-6 py-16 md:py-24 text-center">
           <div className="space-y-6">
             <span className="text-3xl text-stone-300 font-serif">“</span>
-            <p className="text-lg md:text-2xl font-serif italic text-[#4C1212] leading-relaxed max-w-2xl mx-auto">
-              The stories we leave behind are the maps others will use to navigate the future. Your legacy is not what you leave for people, but what you leave in them.
+            <p className="text-xl md:text-2xl font-serif italic text-[#4C1212] leading-relaxed max-w-2xl mx-auto">
+              The bond between generations is the most powerful force in any society. When elders and youth truly listen to each other, entire communities are transformed.
             </p>
             <div className="w-12 h-0.5 bg-[#E23E3E]/30 mx-auto rounded-full" />
-            <p className="text-[10px] text-[#5C4D44] uppercase tracking-wider font-extrabold font-sans">Digital Roots Philosophy</p>
+            <p className="text-xs text-[#5C4D44] uppercase tracking-wider font-extrabold font-sans">Digital Roots — Our Mission</p>
           </div>
         </section>
 
         {/* 5. Bottom Call to Action Section */}
         <section className="bg-[#4C1212] text-white py-16 md:py-24">
           <div className="max-w-3xl mx-auto px-6 text-center space-y-6">
-            <h2 className="text-3xl md:text-4xl font-serif font-extrabold">Become a Keeper of Stories.</h2>
-            <p className="text-sm font-sans text-stone-300 max-w-xl mx-auto leading-relaxed">
-              Join our community of guardians dedicated to the preservation of human experience and the transfer of timeless wisdom.
+            <h2 className="text-3xl md:text-4xl font-serif font-extrabold">Connecting Generations, Together.</h2>
+            <p className="text-base md:text-lg font-sans text-stone-300 max-w-xl mx-auto leading-relaxed">
+              Join our growing community of elders and youth, dedicated to closing the generational gap through real conversations, mentorship, and shared wisdom.
             </p>
             <div className="pt-4 font-sans">
               <button
                 onClick={() => { setIsRegister(true); setView('register'); setError(''); }}
-                className="px-8 py-4 rounded-xl bg-white hover:bg-[#FCFBF9] text-[#4C1212] font-extrabold text-xs uppercase tracking-wider transition-all hover:scale-[1.01] active:scale-[0.99] cursor-pointer shadow-lg"
+                className="px-8 py-4 rounded-xl bg-white hover:bg-[#FCFBF9] text-[#4C1212] font-extrabold text-sm uppercase tracking-wider transition-all hover:scale-[1.01] active:scale-[0.99] cursor-pointer shadow-lg"
               >
-                Begin Your Legacy
+                Join the Movement
               </button>
             </div>
           </div>
@@ -416,9 +415,9 @@ export default function Login({ onLogin }: LoginProps) {
         <footer className="bg-[#1A110D] text-stone-400 py-12 border-t border-stone-850 font-sans">
           <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
             <div className="space-y-3 text-left">
-              <span className="text-lg font-bold uppercase text-white">Digital Roots</span>
-              <p className="text-xs text-stone-500 max-w-sm leading-relaxed">
-                Preserving the delicate threads of human experience for the generations to come. Bridging communities and nurturing legacy.
+              <span className="text-xl font-bold uppercase text-white">Digital Roots</span>
+              <p className="text-sm text-stone-500 max-w-sm leading-relaxed">
+                A platform dedicated to bridging the gap between generations — connecting elders and youth through mentorship, shared wisdom, and meaningful dialogue.
               </p>
             </div>
             
