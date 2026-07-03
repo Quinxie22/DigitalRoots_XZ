@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import type { User } from '../types';
-import { Loader, Mail, Lock, User as UserIcon, ArrowRight } from 'lucide-react';
+import { Loader, Mail, Lock, User as UserIcon, ArrowRight, BookOpen, Sparkles, Heart } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import {
   signInWithEmailAndPassword,
@@ -35,6 +35,7 @@ async function exchangeFirebaseToken(
 export default function Login({ onLogin }: LoginProps) {
   const { t } = useTranslation();
   const [isRegister, setIsRegister] = useState(false);
+  const [view, setView] = useState<'welcome' | 'login' | 'register'>('welcome');
   const [email, setEmail]         = useState('');
   const [password, setPassword]   = useState('');
   const [name, setName]           = useState('');
@@ -251,6 +252,201 @@ export default function Login({ onLogin }: LoginProps) {
         token={pendingOnboardingJwt}
         onComplete={handleOnboardingComplete}
       />
+    );
+  }
+
+  // ── Heritage Introductory Welcome Screen ──────────────────────────────────
+  if (view === 'welcome') {
+    return (
+      <div className="min-h-screen w-full bg-[#FCFBF9] text-[#2A1E17] font-serif overflow-y-auto selection:bg-[#E23E3E]/20">
+        
+        {/* Fine gold line top border decoration */}
+        <div className="h-1 w-full bg-[#E5D2C0]" />
+
+        {/* 1. Header Navigation */}
+        <header className="max-w-7xl mx-auto px-6 py-6 flex items-center justify-between border-b border-[#EADFCF] select-none">
+          <div className="flex items-center gap-3">
+            <svg className="w-8 h-8 flex-shrink-0 shadow-md" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <rect width="40" height="40" rx="12" fill="url(#welcomeGrad)" />
+              <path d="M11 11L29 29" stroke="white" strokeWidth="3.5" strokeLinecap="round" />
+              <path d="M29 11L23 17" stroke="white" strokeWidth="3.5" strokeLinecap="round" />
+              <path d="M17 23L11 29" stroke="white" strokeWidth="3.5" strokeLinecap="round" />
+              <path d="M13 15H27L13 25H27" stroke="rgba(255,255,255,0.85)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+              <defs>
+                <linearGradient id="welcomeGrad" x1="0" y1="0" x2="40" y2="40" gradientUnits="userSpaceOnUse">
+                  <stop stopColor="#E23E3E" />
+                  <stop stopColor="#8A1E24" />
+                </linearGradient>
+              </defs>
+            </svg>
+            <span className="text-xl font-bold tracking-tight uppercase text-[#4C1212] font-sans">Digital Roots</span>
+          </div>
+          
+          <div className="flex items-center gap-6 font-sans">
+            <button 
+              onClick={() => { setIsRegister(false); setView('login'); setError(''); }}
+              className="text-xs font-bold text-[#4C1212] hover:opacity-80 transition-all cursor-pointer"
+            >
+              Sign In
+            </button>
+            <button 
+              onClick={() => { setIsRegister(true); setView('register'); setError(''); }}
+              className="px-4 py-2.5 rounded-full bg-[#4C1212] hover:bg-[#6B1D1D] text-white text-[10px] uppercase font-bold tracking-wider transition-all cursor-pointer shadow-md"
+            >
+              Begin Your Journey
+            </button>
+          </div>
+        </header>
+
+        {/* 2. Hero Section */}
+        <section className="max-w-7xl mx-auto px-6 py-12 md:py-24 grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+          <div className="space-y-6 max-w-xl text-left">
+            <p className="text-xs font-bold tracking-widest text-[#E23E3E] uppercase font-sans">Honor the Past. Inspire the Future.</p>
+            <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold leading-tight text-[#4C1212] font-serif">
+              The Sacred Art <br className="hidden md:inline"/> of Remembering.
+            </h1>
+            <p className="text-base md:text-lg italic text-[#5C4D44] font-serif leading-relaxed">
+              "Every family has a story, and a portion of that story is one you leave behind."
+            </p>
+            
+            <div className="flex flex-col sm:flex-row gap-4 pt-4 font-sans">
+              <button
+                onClick={() => { setIsRegister(true); setView('register'); setError(''); }}
+                className="px-6 py-3.5 rounded-xl bg-[#4C1212] hover:bg-[#6B1D1D] text-white font-extrabold text-xs uppercase tracking-wider transition-all hover:scale-[1.01] active:scale-[0.99] cursor-pointer shadow-lg shadow-[#4c1212]/10"
+              >
+                Start Your Legacy
+              </button>
+              <button
+                onClick={() => { setIsRegister(false); setView('login'); setError(''); }}
+                className="px-6 py-3.5 rounded-xl border border-[#EADFCF] hover:bg-[#FAF6F0] text-[#4C1212] font-extrabold text-xs uppercase tracking-wider transition-all hover:scale-[1.01] active:scale-[0.99] cursor-pointer"
+              >
+                Explore the Archives
+              </button>
+            </div>
+          </div>
+
+          {/* Styled Heritage Photo Frame */}
+          <div className="flex justify-center select-none">
+            <div className="p-4 bg-[#FAF7F2] border border-[#EADFCF] rounded-3xl shadow-xl hover:rotate-1 transition-transform duration-500 max-w-md w-full relative">
+              <div className="aspect-[4/3] rounded-2xl overflow-hidden bg-[#EADFCF]/30 border border-[#E5D2C0] flex items-center justify-center flex-col p-8 text-center space-y-3">
+                <div className="w-12 h-12 rounded-full bg-[#4C1212]/5 flex items-center justify-center text-red-700">
+                  <Sparkles size={24} />
+                </div>
+                <h4 className="font-serif font-bold text-lg text-[#4C1212]">Generational Bridges</h4>
+                <p className="text-xs text-[#5C4D44] max-w-xs leading-relaxed font-sans">
+                  A dynamic network where elders pass on life lessons, and youth capture timeless records of history and family memories.
+                </p>
+              </div>
+              {/* Photo Caption Label */}
+              <div className="text-center pt-3 text-[10px] font-bold text-stone-500 uppercase tracking-widest font-sans">
+                Digital Roots Community — Est. 2026
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* 3. Features Section */}
+        <section className="bg-[#FAF7F2] border-y border-[#EADFCF] py-16 md:py-24">
+          <div className="max-w-7xl mx-auto px-6 space-y-12 text-center">
+            <div className="space-y-3">
+              <span className="text-2xl text-[#E23E3E]">❧</span>
+              <h2 className="text-3xl font-extrabold font-serif text-[#4C1212]">Curating the Human Experience</h2>
+              <p className="text-xs text-[#5C4D44] uppercase tracking-wider font-semibold font-sans">An elegant sanctuary for oral histories and written wisdom</p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto text-left font-sans">
+              
+              {/* Wisdom Hub Feature Card */}
+              <div className="bg-white border border-[#EADFCF] p-6 md:p-8 rounded-3xl space-y-4 hover:shadow-lg transition-all duration-300">
+                <div className="w-10 h-10 rounded-2xl bg-[#E23E3E]/10 flex items-center justify-center text-[#E23E3E]">
+                  <Heart size={18} />
+                </div>
+                <h3 className="font-serif font-bold text-xl text-[#4C1212]">Wisdom Hub</h3>
+                <p className="text-xs text-[#5C4D44] leading-relaxed">
+                  A living bridge between generations. Through curated articles and interactive guides, elders share lessons on history, culture, and life skills to build strong roots for the youth.
+                </p>
+              </div>
+
+              {/* Memory Archive Feature Card */}
+              <div className="bg-white border border-[#EADFCF] p-6 md:p-8 rounded-3xl space-y-4 hover:shadow-lg transition-all duration-300">
+                <div className="w-10 h-10 rounded-2xl bg-[#4C1212]/10 flex items-center justify-center text-[#4C1212]">
+                  <BookOpen size={18} />
+                </div>
+                <h3 className="font-serif font-bold text-xl text-[#4C1212]">Memory Archive</h3>
+                <p className="text-xs text-[#5C4D44] leading-relaxed">
+                  An elegant digital archive of dynamic sound clips, oral histories, and memoirs. Play voice files to listen to real memories recorded by ancestors, or upload your own to safeguard family timelines.
+                </p>
+              </div>
+
+            </div>
+          </div>
+        </section>
+
+        {/* 4. Timeless Quote Section */}
+        <section className="max-w-4xl mx-auto px-6 py-16 md:py-24 text-center">
+          <div className="space-y-6">
+            <span className="text-3xl text-stone-300 font-serif">“</span>
+            <p className="text-lg md:text-2xl font-serif italic text-[#4C1212] leading-relaxed max-w-2xl mx-auto">
+              The stories we leave behind are the maps others will use to navigate the future. Your legacy is not what you leave for people, but what you leave in them.
+            </p>
+            <div className="w-12 h-0.5 bg-[#E23E3E]/30 mx-auto rounded-full" />
+            <p className="text-[10px] text-[#5C4D44] uppercase tracking-wider font-extrabold font-sans">Digital Roots Philosophy</p>
+          </div>
+        </section>
+
+        {/* 5. Bottom Call to Action Section */}
+        <section className="bg-[#4C1212] text-white py-16 md:py-24">
+          <div className="max-w-3xl mx-auto px-6 text-center space-y-6">
+            <h2 className="text-3xl md:text-4xl font-serif font-extrabold">Become a Keeper of Stories.</h2>
+            <p className="text-sm font-sans text-stone-300 max-w-xl mx-auto leading-relaxed">
+              Join our community of guardians dedicated to the preservation of human experience and the transfer of timeless wisdom.
+            </p>
+            <div className="pt-4 font-sans">
+              <button
+                onClick={() => { setIsRegister(true); setView('register'); setError(''); }}
+                className="px-8 py-4 rounded-xl bg-white hover:bg-[#FCFBF9] text-[#4C1212] font-extrabold text-xs uppercase tracking-wider transition-all hover:scale-[1.01] active:scale-[0.99] cursor-pointer shadow-lg"
+              >
+                Begin Your Legacy
+              </button>
+            </div>
+          </div>
+        </section>
+
+        {/* 6. Footer */}
+        <footer className="bg-[#1A110D] text-stone-400 py-12 border-t border-stone-850 font-sans">
+          <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
+            <div className="space-y-3 text-left">
+              <span className="text-lg font-bold uppercase text-white">Digital Roots</span>
+              <p className="text-xs text-stone-500 max-w-sm leading-relaxed">
+                Preserving the delicate threads of human experience for the generations to come. Bridging communities and nurturing legacy.
+              </p>
+            </div>
+            
+            <div className="flex gap-16 md:justify-end text-xs text-left">
+              <div className="space-y-2">
+                <span className="font-bold text-white uppercase tracking-wider text-[10px]">Heritage</span>
+                <ul className="space-y-1.5 text-stone-500">
+                  <li className="hover:text-stone-300 cursor-pointer">Our Story</li>
+                  <li className="hover:text-stone-300 cursor-pointer">The Philosophy</li>
+                  <li className="hover:text-stone-300 cursor-pointer">Archive Guidelines</li>
+                </ul>
+              </div>
+              <div className="space-y-2">
+                <span className="font-bold text-white uppercase tracking-wider text-[10px]">Legacy</span>
+                <ul className="space-y-1.5 text-stone-500">
+                  <li className="hover:text-stone-300 cursor-pointer">Wisdom Guides</li>
+                  <li className="hover:text-stone-300 cursor-pointer">Memoir Audio</li>
+                  <li className="hover:text-stone-300 cursor-pointer">Write Articles</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+          <div className="max-w-7xl mx-auto px-6 pt-12 text-center text-[10px] text-stone-600 border-t border-stone-800/40 mt-8">
+            &copy; 2026 Digital Roots. All rights reserved. Preserving history, one voice at a time.
+          </div>
+        </footer>
+
+      </div>
     );
   }
 
@@ -560,14 +756,27 @@ export default function Login({ onLogin }: LoginProps) {
             </button>
           </form>
 
-          <div className="text-center pt-2">
+          <div className="text-center pt-2 flex flex-col items-center">
             <button
-              onClick={() => { setIsRegister(!isRegister); setError(''); }}
-              className="text-xs transition-colors hover:underline text-stone-550 dark:text-stone-450"
+              type="button"
+              onClick={() => { 
+                const nextReg = !isRegister;
+                setIsRegister(nextReg); 
+                setView(nextReg ? 'register' : 'login');
+                setError(''); 
+              }}
+              className="text-xs transition-colors hover:underline text-stone-550 dark:text-stone-450 cursor-pointer"
             >
               {isRegister
                 ? t('alreadyHaveAccount')
                 : t('newToCommunity')}
+            </button>
+            <button
+              type="button"
+              onClick={() => { setView('welcome'); setError(''); }}
+              className="text-[11px] transition-colors hover:underline text-stone-400 dark:text-stone-500 mt-2 cursor-pointer"
+            >
+              ← Back to Welcome Screen
             </button>
           </div>
         </div>

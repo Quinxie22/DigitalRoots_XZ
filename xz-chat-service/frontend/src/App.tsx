@@ -172,6 +172,50 @@ export default function App() {
   const [showNotifications, setShowNotifications] = useState(false);
   const [notifications, setNotifications] = useState<any[]>([]);
 
+  // Handle mobile browser back button to navigate internally instead of leaving the site
+  useEffect(() => {
+    const handlePopState = (e: PopStateEvent) => {
+      if (viewedProfileUserId) {
+        setViewedProfileUserId(null);
+        window.history.pushState({ app: 'digitalroots' }, '');
+      } else if (showProfileSidebarModal) {
+        setShowProfileSidebarModal(false);
+        window.history.pushState({ app: 'digitalroots' }, '');
+      } else if (showNewChat) {
+        setShowNewChat(false);
+        window.history.pushState({ app: 'digitalroots' }, '');
+      } else if (showNotifications) {
+        setShowNotifications(false);
+        window.history.pushState({ app: 'digitalroots' }, '');
+      } else if (selectedThreadId) {
+        setSelectedThreadId(null);
+        window.history.pushState({ app: 'digitalroots' }, '');
+      } else if (activeTab !== 'messages') {
+        setActiveTab('messages');
+        window.history.pushState({ app: 'digitalroots' }, '');
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [selectedThreadId, activeTab, viewedProfileUserId, showProfileSidebarModal, showNewChat, showNotifications]);
+
+  useEffect(() => {
+    const needsBackInterception = 
+      !!selectedThreadId || 
+      activeTab !== 'messages' ||
+      !!viewedProfileUserId ||
+      showProfileSidebarModal ||
+      showNewChat ||
+      showNotifications;
+
+    if (needsBackInterception) {
+      if (!window.history.state || window.history.state.app !== 'digitalroots') {
+        window.history.pushState({ app: 'digitalroots' }, '');
+      }
+    }
+  }, [selectedThreadId, activeTab, viewedProfileUserId, showProfileSidebarModal, showNewChat, showNotifications]);
+
   const NOTIFICATION_SERVICE_URL_CLIENT = resolveServiceUrl(import.meta.env.VITE_NOTIFICATION_SERVICE_URL, 'http://localhost:3010');
 
   const fetchNotifications = useCallback(async () => {
@@ -1089,7 +1133,11 @@ export default function App() {
       {!(activeTab === 'messages' && selectedThreadId) && (
         <header className="md:hidden flex-shrink-0 h-14 flex items-center justify-between px-5 border-b select-none z-40"
                 style={{ background: 'var(--bg-card)', borderColor: 'var(--border)' }}>
-          <div className="flex items-center gap-2 select-none">
+          <div 
+            onClick={() => { setActiveTab('home'); setSelectedThreadId(null); }}
+            className="flex items-center gap-2 select-none cursor-pointer hover:opacity-80 transition-opacity"
+            title="Go to Home"
+          >
             <svg className="w-7 h-7 flex-shrink-0 shadow-md" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
               <rect width="40" height="40" rx="12" fill="url(#xzGradMobile)" />
               <path d="M11 11L29 29" stroke="white" strokeWidth="3.5" strokeLinecap="round" />
@@ -1164,7 +1212,11 @@ export default function App() {
              style={{ background: 'var(--bg-card)', borderColor: 'var(--border)' }}>
         
         {/* Logo Section */}
-        <div className="flex items-center gap-3 mt-2 select-none">
+        <div 
+          onClick={() => { setActiveTab('home'); setSelectedThreadId(null); }}
+          className="flex items-center gap-3 mt-2 select-none cursor-pointer hover:opacity-80 transition-opacity"
+          title="Go to Home"
+        >
           <svg className="w-8 h-8 flex-shrink-0 shadow-md" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
             <rect width="40" height="40" rx="12" fill="url(#xzGradSidebar)" />
             <path d="M11 11L29 29" stroke="white" strokeWidth="3.5" strokeLinecap="round" />
