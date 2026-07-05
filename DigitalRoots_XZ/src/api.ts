@@ -51,11 +51,11 @@ export async function getMessages(token: string, threadId: string, before?: stri
   return res.json();
 }
 
-export async function sendTextMessage(token: string, threadId: string, content: string) {
+export async function sendTextMessage(token: string, threadId: string, content: string, messageId?: string) {
   const res = await fetch(`${BACKEND_URL}/api/chat/threads/${threadId}/messages`, {
     method: 'POST',
     headers: authHeaders(token),
-    body: JSON.stringify({ content }),
+    body: JSON.stringify({ content, messageId }),
   });
   if (!res.ok) throw new Error(`sendTextMessage failed: ${res.status}`);
   return res.json();

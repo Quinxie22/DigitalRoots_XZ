@@ -35,7 +35,7 @@ SERVICES=(
   "xz-content-service"
   "xz-chat-service"
   "xz-feed-service"
-  "xz-chat-service/frontend"
+  "DigitalRoots_XZ"
 )
 
 ROOT_DIR="/home/ubuntu/DigitalRoots_XZ"

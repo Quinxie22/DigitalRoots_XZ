@@ -27,7 +27,7 @@ const userSchema = new Schema(
     role: {
       type: String,
       required: true,
-      default: 'Youth', // Can be 'Arthur', 'Sarah', 'Tessa', 'Felix', 'Elder', 'Admin', 'Youth'
+      default: 'Youth',
     },
     status: {
       type: String,

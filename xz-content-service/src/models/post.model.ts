@@ -22,6 +22,7 @@ export interface IPost extends Document {
   views: number;
   isPublished: boolean;
   isFlagged: boolean;
+  communityId?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -29,6 +30,7 @@ export interface IPost extends Document {
 const PostSchema = new Schema<IPost>(
   {
     postId: { type: String, required: true, unique: true, index: true },
+    communityId: { type: String, index: true },
     authorId: { type: String, required: true, index: true },
     authorRole: { type: String, enum: ['Elder', 'Youth', 'Admin'], required: true },
     authorName: { type: String, required: true },

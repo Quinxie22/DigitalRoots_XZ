@@ -42,11 +42,17 @@ call npm run build
 if %errorlevel% neq 0 (echo ERROR: xz-feed-service build failed & goto error)
 cd ..
 
+echo   Building xz-session-service...
+cd xz-session-service
+call npm run build
+if %errorlevel% neq 0 (echo ERROR: xz-session-service build failed & goto error)
+cd ..
+
 echo   Building xz-frontend...
-cd xz-chat-service\frontend
+cd DigitalRoots_XZ
 call npm run build
 if %errorlevel% neq 0 (echo ERROR: xz-frontend build failed & goto error)
-cd ..\..
+cd ..
 
 echo.
 echo [PRE-BUILD] All TypeScript compiled successfully!
@@ -57,37 +63,42 @@ echo  Assembling Docker images sequentially...
 echo ============================================================
 
 echo.
-echo [1/7] Building xz-user-service...
+echo [1/8] Building xz-user-service...
 docker compose build --pull=false xz-user-service
 if %errorlevel% neq 0 goto error
 
 echo.
-echo [2/7] Building xz-point-service...
+echo [2/8] Building xz-point-service...
 docker compose build --pull=false xz-point-service
 if %errorlevel% neq 0 goto error
 
 echo.
-echo [3/7] Building xz-notification-service...
+echo [3/8] Building xz-notification-service...
 docker compose build --pull=false xz-notification-service
 if %errorlevel% neq 0 goto error
 
 echo.
-echo [4/7] Building xz-content-service...
+echo [4/8] Building xz-content-service...
 docker compose build --pull=false xz-content-service
 if %errorlevel% neq 0 goto error
 
 echo.
-echo [5/7] Building xz-chat-service...
+echo [5/8] Building xz-chat-service...
 docker compose build --pull=false xz-chat-service
 if %errorlevel% neq 0 goto error
 
 echo.
-echo [6/7] Building xz-feed-service...
+echo [6/8] Building xz-session-service...
+docker compose build --pull=false xz-session-service
+if %errorlevel% neq 0 goto error
+
+echo.
+echo [7/8] Building xz-feed-service...
 docker compose build --pull=false xz-feed-service
 if %errorlevel% neq 0 goto error
 
 echo.
-echo [7/7] Building xz-frontend (Vite + Nginx)...
+echo [8/8] Building xz-frontend (Vite + Nginx)...
 docker compose build --pull=false xz-frontend
 if %errorlevel% neq 0 goto error
 

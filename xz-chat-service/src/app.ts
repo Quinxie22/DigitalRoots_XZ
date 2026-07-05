@@ -12,8 +12,8 @@ dotenv.config();
 import connectMongoDB from './config/mongodb';
 import { verifySocketToken } from './middleware/auth.middleware';
 import { setupSocketHandlers } from './sockets/message.handlers';
+import { TranscriptionService } from './services/transcription.service';
 import chatRoutes from './routes/chat.routes';
-import sessionRoutes from './routes/session.routes';
 import logger from './utils/logger';
 
 const app = express();
@@ -31,6 +31,7 @@ app.set('io', io);
 
 io.use(verifySocketToken);
 setupSocketHandlers(io);
+TranscriptionService.setIo(io);
 
 app.use(helmet({
   crossOriginResourcePolicy: false,
@@ -117,7 +118,6 @@ app.get('/uploads/:fileName', async (req: express.Request, res: express.Response
 });
 
 app.use('/api/chat', chatRoutes);
-app.use('/api/sessions', sessionRoutes);
 
 app.get('/health', (req, res) => {
   res.status(200).json({ status: 'ok', service: 'chat-service', timestamp: new Date() });

@@ -482,3 +482,68 @@ export async function banUser(token: string, userIdToBan: string, reason: string
   return res.json();
 }
 
+// ─── Communities API ──────────────────────────────────────────
+export async function getCommunities(token: string, search = '', interest = '') {
+  let url = `${CONTENT_URL}/api/content/communities?`;
+  if (search) url += `search=${encodeURIComponent(search)}&`;
+  if (interest) url += `interest=${encodeURIComponent(interest)}&`;
+  const res = await fetch(url, { headers: authHeaders(token) });
+  if (!res.ok) throw new Error(`getCommunities failed: ${res.status}`);
+  return res.json();
+}
+
+export async function getMyCommunities(token: string) {
+  const res = await fetch(`${CONTENT_URL}/api/content/communities/my`, {
+    headers: authHeaders(token),
+  });
+  if (!res.ok) throw new Error(`getMyCommunities failed: ${res.status}`);
+  return res.json();
+}
+
+export async function createCommunity(token: string, body: { name: string; description: string; coverImageUrl?: string; interests?: string[]; rules?: string[]; isPublic?: boolean }) {
+  const res = await fetch(`${CONTENT_URL}/api/content/communities`, {
+    method: 'POST',
+    headers: authHeaders(token),
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) throw new Error(`createCommunity failed: ${res.status}`);
+  return res.json();
+}
+
+export async function joinCommunity(token: string, communityId: string) {
+  const res = await fetch(`${CONTENT_URL}/api/content/communities/${communityId}/join`, {
+    method: 'POST',
+    headers: authHeaders(token),
+  });
+  if (!res.ok) throw new Error(`joinCommunity failed: ${res.status}`);
+  return res.json();
+}
+
+export async function leaveCommunity(token: string, communityId: string) {
+  const res = await fetch(`${CONTENT_URL}/api/content/communities/${communityId}/leave`, {
+    method: 'POST',
+    headers: authHeaders(token),
+  });
+  if (!res.ok) throw new Error(`leaveCommunity failed: ${res.status}`);
+  return res.json();
+}
+
+export async function getCommunityPosts(token: string, communityId: string, page = 1, limit = 20) {
+  const res = await fetch(`${CONTENT_URL}/api/content/communities/${communityId}/posts?page=${page}&limit=${limit}`, {
+    headers: authHeaders(token),
+  });
+  if (!res.ok) throw new Error(`getCommunityPosts failed: ${res.status}`);
+  return res.json();
+}
+
+export async function createCommunityPost(token: string, communityId: string, body: { title?: string; content: string; type?: 'text' | 'image' | 'video' | 'audio'; mediaUrl?: string }) {
+  const res = await fetch(`${CONTENT_URL}/api/content/communities/${communityId}/posts`, {
+    method: 'POST',
+    headers: authHeaders(token),
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) throw new Error(`createCommunityPost failed: ${res.status}`);
+  return res.json();
+}
+
+

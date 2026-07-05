@@ -8,6 +8,12 @@ import https from 'https';
 import { v4 as uuidv4 } from 'uuid';
 
 export class TranscriptionService {
+  private static ioInstance: any = null;
+
+  static setIo(io: any): void {
+    this.ioInstance = io;
+  }
+
   static queueTranscription(messageId: string, mediaUrl: string): void {
     // Run asynchronously in the background
     this.processTranscription(messageId, mediaUrl).catch((error) => {
@@ -48,7 +54,7 @@ export class TranscriptionService {
   private static emitUpdate(message: any) {
     if (!message) return;
     try {
-      const { io } = require('../app');
+      const io = this.ioInstance;
       if (io) {
         io.to(`thread:${message.threadId}`).emit('message-updated', message);
         logger.info(`Emitted message-updated event via socket for thread ${message.threadId}`);

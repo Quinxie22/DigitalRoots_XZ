@@ -111,7 +111,7 @@ export class ChatController {
     try {
       const firebaseUid = req.user?.firebase_uid;
       const { threadId } = req.params as { threadId: string };
-      const { content, replyTo, mentions } = req.body;
+      const { content, messageId, replyTo, mentions } = req.body;
 
       if (!firebaseUid) {
         res.status(401).json({ error: 'Unauthorized', message: 'User not authenticated' });
@@ -128,7 +128,7 @@ export class ChatController {
         return;
       }
 
-      const message = await ChatService.sendTextMessage(threadId, firebaseUid, content, replyTo, mentions);
+      const message = await ChatService.sendTextMessage(threadId, firebaseUid, content, messageId, replyTo, mentions);
 
       const io = req.app.get('io');
       if (io) {

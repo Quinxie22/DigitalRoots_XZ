@@ -15,6 +15,7 @@ import postRoutes from './routes/post.routes';
 import storyRoutes from './routes/story.routes';
 import knowledgeRoutes from './routes/knowledge.routes';
 import moderationRoutes from './routes/moderation.routes';
+import communityRoutes from './routes/community.routes';
 import { TranscriptionService } from './services/transcription.service';
 import logger from './utils/logger';
 
@@ -48,6 +49,7 @@ app.use('/api/content/posts', postRoutes);
 app.use('/api/content/stories', storyRoutes);
 app.use('/api/content/knowledge', knowledgeRoutes);
 app.use('/api/content/moderation', moderationRoutes);
+app.use('/api/content/communities', communityRoutes);
 
 // Health check endpoint
 app.get('/health', (req, res) => {

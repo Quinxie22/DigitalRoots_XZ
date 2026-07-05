@@ -65,6 +65,7 @@ app.use(gatewayAuth);
 const USER_SERVICE     = process.env.USER_SERVICE_URL     || 'http://xz-user-service:3006';
 const CONTENT_SERVICE  = process.env.CONTENT_SERVICE_URL  || 'http://xz-content-service:3005';
 const CHAT_SERVICE     = process.env.CHAT_SERVICE_URL     || 'http://xz-chat-service:3004';
+const SESSION_SERVICE  = process.env.SESSION_SERVICE_URL  || 'http://xz-session-service:3008';
 const FEED_SERVICE     = process.env.FEED_SERVICE_URL     || 'http://xz-feed-service:3009';
 const NOTIF_SERVICE    = process.env.NOTIFICATION_SERVICE_URL || 'http://xz-notification-service:3010';
 const POINT_SERVICE    = process.env.POINT_SERVICE_URL    || 'http://xz-point-service:3007';
@@ -113,8 +114,8 @@ app.use('/api/content', createProxyMiddleware(proxyTo(CONTENT_SERVICE, '/api/con
 // Chat Service (threads, messages)
 app.use('/api/chat', createProxyMiddleware(proxyTo(CHAT_SERVICE, '/api/chat')));
 
-// Session Service (mentoring sessions — also on Chat Service)
-app.use('/api/sessions', createProxyMiddleware(proxyTo(CHAT_SERVICE, '/api/sessions')));
+// Session Service (mentoring sessions)
+app.use('/api/sessions', createProxyMiddleware(proxyTo(SESSION_SERVICE, '/api/sessions')));
 
 // Feed Service (aggregated feed)
 app.use('/api/feed', createProxyMiddleware(proxyTo(FEED_SERVICE, '/api/feed')));
@@ -149,7 +150,7 @@ const server = app.listen(PORT, () => {
   console.log(`     /api/users/*         → ${USER_SERVICE}`);
   console.log(`     /api/content/*       → ${CONTENT_SERVICE}`);
   console.log(`     /api/chat/*          → ${CHAT_SERVICE}`);
-  console.log(`     /api/sessions/*      → ${CHAT_SERVICE}`);
+  console.log(`     /api/sessions/*      → ${SESSION_SERVICE}`);
   console.log(`     /api/feed/*          → ${FEED_SERVICE}`);
   console.log(`     /api/notifications/* → ${NOTIF_SERVICE}`);
   console.log(`     /api/points/*        → ${POINT_SERVICE}`);

@@ -127,7 +127,7 @@ export class PostController {
       const category = req.query.category as string;
       const sort = req.query.sort as string; // 'newest' or 'oldest'
 
-      const query: any = { isPublished: true, isFlagged: false };
+      const query: any = { isPublished: true, isFlagged: false, communityId: { $exists: false } };
       if (category) {
         query.$or = [
           { category: category },

@@ -82,6 +82,23 @@ services:
     networks:
       - xz-network
 
+  xz-session-service:
+    build: ./xz-session-service
+    container_name: xz-session-service
+    environment:
+      - NODE_OPTIONS=--max-old-space-size=128
+      - PORT=3008
+      - MONGODB_URI=mongodb://mongodb:27017
+      - MONGODB_DB=xz_sessions
+      - USER_SERVICE_URL=http://xz-user-service:3006
+      - POINT_SERVICE_URL=http://xz-point-service:3007
+      - NOTIFICATION_SERVICE_URL=http://xz-notification-service:3010
+      - JWT_SECRET=xz_jwt_secret_shared_2026_key
+    depends_on:
+      - mongodb
+    networks:
+      - xz-network
+
   xz-point-service:
     build: ./xz-point-service
     container_name: xz-point-service
@@ -118,6 +135,7 @@ services:
       - PORT=3010
       - MONGODB_URI=mongodb://mongodb:27017
       - MONGODB_DB=xz_notifications
+      - CHAT_SERVICE_URL=http://xz-chat-service:3004
     depends_on:
       - mongodb
     networks:
@@ -125,7 +143,7 @@ services:
 
   # ── FRONTEND SERVICE ────────────────────────────────────────────────────────
   xz-frontend:
-    build: ./xz-chat-service/frontend
+    build: ./DigitalRoots_XZ
     container_name: xz-frontend
     ports:
       - "5173:80"
@@ -149,6 +167,7 @@ services:
       - FEED_SERVICE_URL=http://xz-feed-service:3009
       - NOTIFICATION_SERVICE_URL=http://xz-notification-service:3010
       - POINT_SERVICE_URL=http://xz-point-service:3007
+      - SESSION_SERVICE_URL=http://xz-session-service:3008
     depends_on:
       - xz-user-service
       - xz-content-service
@@ -156,6 +175,7 @@ services:
       - xz-feed-service
       - xz-notification-service
       - xz-point-service
+      - xz-session-service
     networks:
       - xz-network
 

@@ -102,15 +102,16 @@ export class ChatService {
     threadId: string,
     senderId: string,
     content: string,
+    messageId?: string,
     replyTo?: string,
     mentions?: string[]
   ): Promise<any> {
-    const messageId = uuidv4();
+    const finalMessageId = messageId || uuidv4();
     const timestamp = new Date();
     
     const message = await Message.create({
       threadId,
-      messageId,
+      messageId: finalMessageId,
       senderId,
       type: MessageType.TEXT,
       content,

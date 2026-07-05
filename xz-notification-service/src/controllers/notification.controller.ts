@@ -24,7 +24,8 @@ export const createNotification = async (req: Request, res: Response): Promise<v
 
     // Relay to Chat service for real-time WebSocket delivery
     try {
-      await fetch('http://localhost:3004/api/chat/internal/notifications', {
+      const chatServiceUrl = process.env.CHAT_SERVICE_URL || 'http://localhost:3004';
+      await fetch(`${chatServiceUrl}/api/chat/internal/notifications`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId, notification })

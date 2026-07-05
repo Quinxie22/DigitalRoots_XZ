@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, lazy, Suspense } from 'react';
 import { 
   Send, Mic, Paperclip, Phone, Edit3, Check, X, 
   Play, Pause, Loader, FileText, ChevronDown, ChevronUp, Trash2,
@@ -18,15 +18,17 @@ import Login from './components/Login';
 import Sidebar from './components/Sidebar';
 import CallView from './components/CallView';
 import ProfileSidebar from './components/ProfileSidebar';
-import HomeDashboard from './components/HomeDashboard';
-import WisdomHub from './components/WisdomHub';
-import MemoryArchive from './components/MemoryArchive';
-import SettingsView from './components/SettingsView';
 import UserProfileModal from './components/UserProfileModal';
-import MentoringHub from './components/MentoringHub';
-import InterviewManager from './components/InterviewManager';
-import AdminConsole from './components/AdminConsole';
 import { useTranslation } from 'react-i18next';
+
+const HomeDashboard = lazy(() => import('./components/HomeDashboard'));
+const WisdomHub = lazy(() => import('./components/WisdomHub'));
+const MemoryArchive = lazy(() => import('./components/MemoryArchive'));
+const SettingsView = lazy(() => import('./components/SettingsView'));
+const MentoringHub = lazy(() => import('./components/MentoringHub'));
+const InterviewManager = lazy(() => import('./components/InterviewManager'));
+const AdminConsole = lazy(() => import('./components/AdminConsole'));
+const CommunityHub = lazy(() => import('./components/CommunityHub'));
 
 const ALL_USERS = [
   { id: 'user-arthur', name: 'Arthur Miller', initials: 'AM', color: 'from-red-700 to-red-900' },
@@ -102,7 +104,7 @@ export default function App() {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
   const [loadingSession, setLoadingSession] = useState(true);
-  const [activeTab, setActiveTab] = useState<'home' | 'messages' | 'archive' | 'wisdom' | 'settings' | 'mentoring' | 'interviews' | 'notifications' | 'admin'>('messages');
+  const [activeTab, setActiveTab] = useState<'home' | 'messages' | 'communities' | 'archive' | 'wisdom' | 'settings' | 'mentoring' | 'interviews' | 'notifications' | 'admin'>('messages');
   const [autoplayStory, setAutoplayStory] = useState<any | null>(null);
   const [selectedThreadId, setSelectedThreadId] = useState<string | null>(null);
   const selectedThreadIdRef = useRef<string | null>(null);
@@ -171,6 +173,14 @@ export default function App() {
   // Notification states
   const [showNotifications, setShowNotifications] = useState(false);
   const [notifications, setNotifications] = useState<any[]>([]);
+  const [toast, setToast] = useState<{ title: string; message: string; type: string } | null>(null);
+
+  useEffect(() => {
+    if (toast) {
+      const timer = setTimeout(() => setToast(null), 4000);
+      return () => clearTimeout(timer);
+    }
+  }, [toast]);
 
   // Handle mobile browser back button to navigate internally instead of leaving the site
   useEffect(() => {
@@ -237,7 +247,7 @@ export default function App() {
   useEffect(() => {
     if (currentUser) {
       fetchNotifications();
-      const interval = setInterval(fetchNotifications, 15000);
+      const interval = setInterval(fetchNotifications, 8000);
       return () => clearInterval(interval);
     }
   }, [currentUser, fetchNotifications]);
@@ -548,6 +558,11 @@ export default function App() {
         return [notification, ...prev];
       });
       playNotificationSound();
+      setToast({
+        title: notification.title,
+        message: notification.message,
+        type: notification.type
+      });
     };
 
     socket.on('new-notification', handleNewNotification);
@@ -588,23 +603,6 @@ export default function App() {
 
     const loadMessages = async () => {
       setLoadingMessages(true);
-      try {
-        const token = sessionStorage.getItem('token') || localStorage.getItem('token');
-        if (token) {
-          const userServiceUrl = import.meta.env.VITE_USER_SERVICE_URL || 'http://localhost:3006';
-          const usersRes = await fetch(`${userServiceUrl}/api/users`, {
-            headers: { Authorization: `Bearer ${token}` }
-          });
-          if (usersRes.ok) {
-            const usersData = await usersRes.json();
-            const usersList = JSON.stringify(usersData.users || []);
-            sessionStorage.setItem('users_list', usersList);
-          }
-        }
-      } catch (err) {
-        console.warn('Failed to refresh user list in loadMessages:', err);
-      }
-
       try {
         const data = await getMessages(currentUser.id, selectedThreadId);
         const msgs = data.messages ?? [];
@@ -889,13 +887,35 @@ export default function App() {
     setPendingFiles([]);
 
     try {
-      // 1. Send text message if any
+      // 1. Send text message if any (optimistically)
       if (text.trim()) {
-        const message = await sendTextMessage(currentUser.id, selectedThreadId, text);
-        setMessages(prev => {
-          if (prev.some(m => m.messageId === message.messageId)) return prev;
-          return [...prev, message];
-        });
+        const tempId = `temp-text-${Date.now()}-${Math.random()}`;
+        const optimisticMsg: Message = {
+          messageId: tempId,
+          threadId: selectedThreadId,
+          senderId: currentUser.id,
+          type: 'text',
+          content: text,
+          timestamp: new Date().toISOString(),
+          isUploading: true
+        };
+        
+        setMessages(prev => [...prev, optimisticMsg]);
+        scrollToBottom();
+
+        (async () => {
+          try {
+            const message = await sendTextMessage(currentUser.id, selectedThreadId, text, tempId);
+            setMessages(prev =>
+              prev.map(m => m.messageId === tempId ? { ...message, isUploading: false } : m)
+            );
+          } catch (err) {
+            console.error('Failed to send text message:', err);
+            setMessages(prev =>
+              prev.map(m => m.messageId === tempId ? { ...m, isUploading: false, uploadFailed: true } : m)
+            );
+          }
+        })();
       }
 
       // 2. Upload and send files with optimistic staging state
@@ -1139,6 +1159,22 @@ export default function App() {
     <div className="flex flex-col h-[100dvh] w-full overflow-hidden bg-[var(--bg-dark)]"
          style={{ color: 'var(--text-primary)' }}>
       
+      {/* Toast Notification Banner */}
+      {toast && (
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[999] w-full max-w-sm px-4 animate-slide-in">
+          <div className="glass p-4 rounded-xl flex flex-col gap-1 shadow-lg border-l-4 border-[var(--primary)] text-left select-none relative">
+            <button 
+              onClick={() => setToast(null)}
+              className="absolute top-2 right-2 p-1 rounded-full hover:bg-[var(--bg-elevated)] cursor-pointer text-stone-400 hover:text-[var(--text-primary)]"
+            >
+              <X size={14} />
+            </button>
+            <span className="text-xs font-extrabold text-[var(--primary)] uppercase tracking-wider">{toast.title}</span>
+            <p className="text-xs text-[var(--text-secondary)] font-medium leading-relaxed pr-6">{toast.message}</p>
+          </div>
+        </div>
+      )}
+      
       {/* Mobile Top Header (hidden on desktop) */}
       {!(activeTab === 'messages' && selectedThreadId) && (
         <header className="md:hidden flex-shrink-0 h-14 flex items-center justify-between px-5 border-b select-none z-40"
@@ -1293,8 +1329,19 @@ export default function App() {
                 ? 'bg-[var(--bg-elevated)] text-[var(--primary)] shadow-sm' 
                 : 'text-stone-500 dark:text-stone-400 btn-hover-primary'
             }`}>
-            <Users size={16} style={{ color: activeTab === 'wisdom' ? 'var(--primary)' : undefined }} />
+            <BookOpen size={16} style={{ color: activeTab === 'wisdom' ? 'var(--primary)' : undefined }} />
             {t('wisdom')}
+          </button>
+
+          <button 
+            onClick={() => setActiveTab('communities')}
+            className={`flex items-center gap-3 px-4 py-2.5 text-xs font-bold rounded-xl text-left transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer ${
+              activeTab === 'communities' 
+                ? 'bg-[var(--bg-elevated)] text-[var(--primary)] shadow-sm' 
+                : 'text-stone-500 dark:text-stone-400 btn-hover-primary'
+            }`}>
+            <Users size={16} style={{ color: activeTab === 'communities' ? 'var(--primary)' : undefined }} />
+            Communities
           </button>
 
           <button 
@@ -2203,82 +2250,133 @@ export default function App() {
 
       {activeTab === 'home' && (
         <div className="flex-1 min-h-0 w-full overflow-hidden flex flex-col pb-16 md:pb-0">
-          <HomeDashboard 
-            currentUser={currentUser} 
-            token={currentUser.id} 
-            onNavigate={setActiveTab} 
-            onPlayStory={(story) => { 
-              setAutoplayStory(story); 
-              setActiveTab('archive'); 
-            }} 
-            onViewProfile={setViewedProfileUserId}
-            onShowNotifications={() => setShowNotifications(true)}
-          />
+          <Suspense fallback={
+            <div className="flex-grow flex items-center justify-center text-stone-400">
+              <Loader className="animate-spin text-[var(--primary)] mr-2" size={24} />
+              Loading Home...
+            </div>
+          }>
+            <HomeDashboard 
+              currentUser={currentUser} 
+              token={currentUser.id} 
+              onNavigate={setActiveTab} 
+              onPlayStory={(story) => { 
+                setAutoplayStory(story); 
+                setActiveTab('archive'); 
+              }} 
+              onViewProfile={setViewedProfileUserId}
+              onShowNotifications={() => setShowNotifications(true)}
+            />
+          </Suspense>
+        </div>
+      )}
+
+      {activeTab === 'communities' && (
+        <div className="flex-1 min-h-0 w-full overflow-hidden flex flex-col pb-16 md:pb-0">
+          <Suspense fallback={
+            <div className="flex-grow flex items-center justify-center text-stone-400">
+              <Loader className="animate-spin text-[var(--primary)] mr-2" size={24} />
+              Loading Communities...
+            </div>
+          }>
+            <CommunityHub 
+              currentUser={currentUser} 
+              token={currentUser.id} 
+            />
+          </Suspense>
         </div>
       )}
 
       {activeTab === 'wisdom' && (
         <div className="flex-1 min-h-0 w-full overflow-hidden flex flex-col pb-16 md:pb-0">
-          <WisdomHub 
-            currentUser={currentUser} 
-            token={currentUser.id} 
-          />
+          <Suspense fallback={
+            <div className="flex-grow flex items-center justify-center text-stone-400">
+              <Loader className="animate-spin text-[var(--primary)] mr-2" size={24} />
+              Loading Wisdom Hub...
+            </div>
+          }>
+            <WisdomHub 
+              currentUser={currentUser} 
+              token={currentUser.id} 
+            />
+          </Suspense>
         </div>
       )}
 
       {activeTab === 'archive' && (
         <div className="flex-1 min-h-0 w-full overflow-hidden flex flex-col pb-16 md:pb-0">
-          <MemoryArchive 
-            currentUser={currentUser} 
-            token={currentUser.id} 
-            autoPlayStory={autoplayStory} 
-            onClearAutoPlay={() => setAutoplayStory(null)} 
-          />
+          <Suspense fallback={
+            <div className="flex-grow flex items-center justify-center text-stone-400">
+              <Loader className="animate-spin text-[var(--primary)] mr-2" size={24} />
+              Loading Memory Archive...
+            </div>
+          }>
+            <MemoryArchive 
+              currentUser={currentUser} 
+              token={currentUser.id} 
+              autoPlayStory={autoplayStory} 
+              onClearAutoPlay={() => setAutoplayStory(null)} 
+            />
+          </Suspense>
         </div>
       )}
 
       {activeTab === 'settings' && (
         <div className="flex-1 min-h-0 w-full overflow-hidden flex flex-col pb-16 md:pb-0">
-          <SettingsView 
-            currentUser={currentUser} 
-            onProfileUpdate={(updatedUser) => {
-              setCurrentUser(updatedUser);
-              const usersJson = localStorage.getItem('users_list') || sessionStorage.getItem('users_list');
-              if (usersJson) {
-                try {
-                  const users = JSON.parse(usersJson);
-                  const updatedUsers = users.map((u: any) => (u.id === updatedUser.id || u._id === updatedUser.id) ? { ...u, ...updatedUser } : u);
-                  localStorage.setItem('users_list', JSON.stringify(updatedUsers));
-                  sessionStorage.setItem('users_list', JSON.stringify(updatedUsers));
-                } catch (e) {
-                  console.error('Failed to update users_list cache:', e);
+          <Suspense fallback={
+            <div className="flex-grow flex items-center justify-center text-stone-400">
+              <Loader className="animate-spin text-[var(--primary)] mr-2" size={24} />
+              Loading Settings...
+            </div>
+          }>
+            <SettingsView 
+              currentUser={currentUser} 
+              onProfileUpdate={(updatedUser) => {
+                setCurrentUser(updatedUser);
+                const usersJson = localStorage.getItem('users_list') || sessionStorage.getItem('users_list');
+                if (usersJson) {
+                  try {
+                    const users = JSON.parse(usersJson);
+                    const updatedUsers = users.map((u: any) => (u.id === updatedUser.id || u._id === updatedUser.id) ? { ...u, ...updatedUser } : u);
+                    localStorage.setItem('users_list', JSON.stringify(updatedUsers));
+                    sessionStorage.setItem('users_list', JSON.stringify(updatedUsers));
+                  } catch (e) {
+                    console.error('Failed to update users_list cache:', e);
+                  }
                 }
-              }
-            }}
-            onLogout={handleLogout}
-            darkMode={darkMode}
-            setDarkMode={setDarkMode}
-            onNavigate={setActiveTab}
-          />
+              }}
+              onLogout={handleLogout}
+              darkMode={darkMode}
+              setDarkMode={setDarkMode}
+              onNavigate={setActiveTab}
+            />
+          </Suspense>
         </div>
       )}
 
       {activeTab === 'mentoring' && (
         <div className="flex-1 min-h-0 w-full overflow-hidden flex flex-col pb-16 md:pb-0">
-          <MentoringHub 
-            currentUser={currentUser} 
-            token={sessionStorage.getItem('token') || localStorage.getItem('token') || currentUser.id} 
-            onStartChat={async (otherUserId) => {
-              try {
-                const thread = await getOrCreateThread(currentUser.id, otherUserId);
-                setSelectedThreadId(thread.threadId);
-                setActiveTab('messages');
-              } catch (err) {
-                console.error('Failed to start thread:', err);
-              }
-            }}
-            onViewProfile={setViewedProfileUserId}
-          />
+          <Suspense fallback={
+            <div className="flex-grow flex items-center justify-center text-stone-400">
+              <Loader className="animate-spin text-[var(--primary)] mr-2" size={24} />
+              Loading Mentoring Hub...
+            </div>
+          }>
+            <MentoringHub 
+              currentUser={currentUser} 
+              token={sessionStorage.getItem('token') || localStorage.getItem('token') || currentUser.id} 
+              onStartChat={async (otherUserId) => {
+                try {
+                  const thread = await getOrCreateThread(currentUser.id, otherUserId);
+                  setSelectedThreadId(thread.threadId);
+                  setActiveTab('messages');
+                } catch (err) {
+                  console.error('Failed to start thread:', err);
+                }
+              }}
+              onViewProfile={setViewedProfileUserId}
+            />
+          </Suspense>
         </div>
       )}
 
@@ -2400,10 +2498,17 @@ export default function App() {
 
       {activeTab === 'admin' && currentUser.role === 'Admin' && (
         <div className="flex-1 min-h-0 w-full overflow-hidden flex flex-col pb-16 md:pb-0">
-          <AdminConsole 
-            token={sessionStorage.getItem('token') || localStorage.getItem('token') || ''} 
-            currentUser={currentUser} 
-          />
+          <Suspense fallback={
+            <div className="flex-grow flex items-center justify-center text-stone-400">
+              <Loader className="animate-spin text-[var(--primary)] mr-2" size={24} />
+              Loading Admin Console...
+            </div>
+          }>
+            <AdminConsole 
+              token={sessionStorage.getItem('token') || localStorage.getItem('token') || ''} 
+              currentUser={currentUser} 
+            />
+          </Suspense>
         </div>
       )}
 
@@ -2599,8 +2704,18 @@ export default function App() {
             className={`flex flex-col items-center justify-center gap-0.5 flex-1 min-w-0 py-1 text-[8.5px] font-bold transition-all hover:scale-105 active:scale-95 cursor-pointer ${
               activeTab === 'wisdom' ? 'text-[var(--primary)] font-extrabold font-serif' : 'text-stone-400 dark:text-stone-500 hover:text-[var(--text-primary)]'
             }`}>
-            <Users size={16} />
+            <BookOpen size={16} />
             <span className="truncate w-full text-center">{t('wisdom')}</span>
+          </button>
+
+          <button 
+            onClick={() => setActiveTab('communities')}
+            type="button"
+            className={`flex flex-col items-center justify-center gap-0.5 flex-1 min-w-0 py-1 text-[8.5px] font-bold transition-all hover:scale-105 active:scale-95 cursor-pointer ${
+              activeTab === 'communities' ? 'text-[var(--primary)] font-extrabold font-serif' : 'text-stone-400 dark:text-stone-500 hover:text-[var(--text-primary)]'
+            }`}>
+            <Users size={16} />
+            <span className="truncate w-full text-center">Groups</span>
           </button>
 
           <button 

@@ -82,3 +82,21 @@ export interface CallParticipant {
   isVideoOff: boolean;
   stream?: MediaStream;
 }
+
+export interface Community {
+  communityId: string;
+  name: string;
+  description: string;
+  coverImage?: string;
+  interests: string[];
+  creatorId: string;
+  members: string[];
+  admins: string[];
+  rules: string[];
+  isPublic: boolean;
+  memberCount: number;
+  postCount: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
