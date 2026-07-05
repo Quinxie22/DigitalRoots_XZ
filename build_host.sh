@@ -35,6 +35,7 @@ SERVICES=(
   "xz-content-service"
   "xz-chat-service"
   "xz-feed-service"
+  "xz-session-service"
   "DigitalRoots_XZ"
 )
 
