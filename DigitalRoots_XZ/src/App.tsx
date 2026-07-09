@@ -14,6 +14,8 @@ import {
 import { socket } from './socket';
 import { useWebRTC } from './hooks/useWebRTC';
 import { resolveServiceUrl } from './utils/url';
+import { signOut } from 'firebase/auth';
+import { auth } from './firebase';
 import Login from './components/Login';
 import Sidebar from './components/Sidebar';
 import CallView from './components/CallView';
@@ -68,9 +70,9 @@ function getUserInfo(userId: string) {
   const staticUser = ALL_USERS.find((u) => u.id === userId);
   return {
     id: userId, 
-    name: staticUser?.name || userId, 
-    initials: staticUser?.initials || (userId && typeof userId === 'string' ? userId.slice(0, 2).toUpperCase() : '??'), 
-    color: staticUser?.color || 'from-gray-600 to-gray-800',
+    name: staticUser?.name || 'Not Available', 
+    initials: staticUser?.initials || 'NA', 
+    color: staticUser?.color || 'from-gray-650 to-gray-800',
     role: 'Elder',
     avatar: ''
   };
@@ -123,6 +125,7 @@ export default function App() {
     localStorage.removeItem('users_list');
     sessionStorage.removeItem('token');
     sessionStorage.removeItem('users_list');
+    signOut(auth).catch(err => console.warn('[Logout] Firebase signOut error:', err));
     setCurrentUser(null);
     setSelectedThreadId(null);
   };

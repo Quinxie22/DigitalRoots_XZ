@@ -1,13 +1,51 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Users, Search, Plus, X, Globe, Lock, MessageSquare, 
-  ThumbsUp, Calendar, Trash2, Shield, UserPlus, LogOut, Loader, Image as ImageIcon
+  ThumbsUp, Calendar, Trash2, Shield, UserPlus, LogOut, Loader, Image as ImageIcon, Share2
 } from 'lucide-react';
 import { 
   getCommunities, getMyCommunities, createCommunity, 
   joinCommunity, leaveCommunity, getCommunityPosts, createCommunityPost 
 } from '../contentApi';
 import type { User, Community, Message } from '../types';
+
+function getUserInfo(userId: string) {
+  const usersJson = sessionStorage.getItem('users_list') || localStorage.getItem('users_list');
+  const dynamicUsers: any[] = usersJson ? JSON.parse(usersJson) : [];
+  const found = dynamicUsers.find((u) => u.id === userId || u._id === userId || u.firebaseUid === userId || u.firebase_uid === userId);
+  
+  if (found) {
+    const initials = found.avatar || found.initials || found.name.slice(0, 2).toUpperCase();
+    const gradients = [
+      'from-red-700 to-red-900',
+      'from-purple-700 to-purple-900',
+      'from-rose-600 to-pink-900',
+      'from-blue-700 to-blue-900',
+      'from-emerald-700 to-teal-900',
+      'from-amber-600 to-orange-800'
+    ];
+    const hash = userId && typeof userId === 'string' ? userId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0) : 0;
+    const colorGradient = gradients[hash % gradients.length];
+    
+    return {
+      id: found.id || found._id,
+      name: found.name,
+      initials: initials.length <= 2 ? initials : found.name.slice(0, 2).toUpperCase(),
+      color: colorGradient,
+      role: found.role,
+      avatar: found.avatar
+    };
+  }
+  
+  return {
+    id: userId,
+    name: 'Not Available',
+    initials: 'NA',
+    color: 'from-gray-650 to-gray-800',
+    role: 'Youth',
+    avatar: ''
+  };
+}
 
 interface CommunityHubProps {
   currentUser: User;
@@ -40,6 +78,18 @@ export default function CommunityHub({ currentUser, token }: CommunityHubProps) 
   // Tab state in detailed view
   const [activeSubTab, setActiveSubTab] = useState<'posts' | 'members' | 'rules'>('posts');
   const [errorMsg, setErrorMsg] = useState('');
+
+  // Group Invite & Share State
+  const [inviteUserId, setInviteUserId] = useState('');
+  const [inviting, setInviting] = useState(false);
+  const [inviteError, setInviteError] = useState('');
+
+  const handleShareGroup = () => {
+    if (!selectedCommunity) return;
+    const shareUrl = `${window.location.origin}/community/${selectedCommunity.communityId}`;
+    navigator.clipboard.writeText(shareUrl);
+    alert(`Community share link copied to clipboard!\n${shareUrl}`);
+  };
 
   const availableInterests = ['Cultural', 'Traditional', 'Story', 'Proverb', 'Recipe', 'History', 'Educational', 'LanguageLearning', 'Music', 'Arts', 'Tech', 'Community'];
 
@@ -285,23 +335,33 @@ export default function CommunityHub({ currentUser, token }: CommunityHubProps) 
                     </p>
                   </div>
                   
-                  {isMember(selectedCommunity) ? (
+                  <div className="flex gap-2">
                     <button
-                      onClick={() => handleLeave(selectedCommunity.communityId)}
-                      className="px-3.5 py-1.5 rounded-lg text-xs bg-stone-700/80 hover:bg-red-600 hover:text-white transition-all flex items-center gap-1.5 cursor-pointer font-medium"
+                      onClick={handleShareGroup}
+                      className="px-3.5 py-1.5 rounded-lg text-xs bg-stone-700/80 hover:bg-stone-600 hover:text-white transition-all flex items-center gap-1.5 cursor-pointer font-medium"
                     >
-                      <LogOut size={12} />
-                      Leave Group
+                      <Share2 size={12} />
+                      Share
                     </button>
-                  ) : (
-                    <button
-                      onClick={() => handleJoin(selectedCommunity.communityId)}
-                      className="px-4 py-1.5 rounded-lg text-xs bg-[var(--primary)] hover:bg-[var(--primary-dark)] text-white transition-all flex items-center gap-1.5 cursor-pointer font-medium hover:scale-105"
-                    >
-                      <UserPlus size={12} />
-                      Join Group
-                    </button>
-                  )}
+
+                    {isMember(selectedCommunity) ? (
+                      <button
+                        onClick={() => handleLeave(selectedCommunity.communityId)}
+                        className="px-3.5 py-1.5 rounded-lg text-xs bg-stone-700/80 hover:bg-red-600 hover:text-white transition-all flex items-center gap-1.5 cursor-pointer font-medium"
+                      >
+                        <LogOut size={12} />
+                        Leave Group
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => handleJoin(selectedCommunity.communityId)}
+                        className="px-4 py-1.5 rounded-lg text-xs bg-[var(--primary)] hover:bg-[var(--primary-dark)] text-white transition-all flex items-center gap-1.5 cursor-pointer font-medium hover:scale-105"
+                      >
+                        <UserPlus size={12} />
+                        Join Group
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
 
@@ -422,22 +482,85 @@ export default function CommunityHub({ currentUser, token }: CommunityHubProps) 
                 )}
 
                 {activeSubTab === 'members' && (
-                  <div className="p-4 rounded-xl bg-[var(--bg-card)] border border-[var(--border)] shadow-sm flex flex-col gap-3">
-                    <h4 className="text-sm font-bold">Group Members ({selectedCommunity.members.length})</h4>
+                  <div className="p-4 rounded-xl bg-[var(--bg-card)] border border-[var(--border)] shadow-sm flex flex-col gap-4">
+                    <div className="flex items-center justify-between border-b pb-2" style={{ borderColor: 'var(--border)' }}>
+                      <h4 className="text-sm font-bold">Group Members ({selectedCommunity.members.length})</h4>
+                    </div>
+
+                    {/* Add Member Directly for Creator / Admins */}
+                    {(selectedCommunity.creatorId === currentUser.id || selectedCommunity.admins.includes(currentUser.id)) && (
+                      <div className="bg-[var(--bg-elevated)] border border-[var(--border)] rounded-xl p-4 flex flex-col gap-2.5 text-left">
+                        <span className="text-[10px] uppercase font-extrabold tracking-wider text-stone-400">Add Member Directly (Host Control)</span>
+                        <div className="flex gap-2">
+                          <select
+                            value={inviteUserId}
+                            onChange={(e) => setInviteUserId(e.target.value)}
+                            className="flex-grow px-3 py-2 text-xs bg-[var(--bg-card)] border rounded-lg outline-none text-white focus:border-[var(--primary)]"
+                            style={{ borderColor: 'var(--border)' }}
+                          >
+                            <option value="">-- Select a user to add --</option>
+                            {(() => {
+                              const usersJson = sessionStorage.getItem('users_list') || localStorage.getItem('users_list');
+                              const list: any[] = usersJson ? JSON.parse(usersJson) : [];
+                              const nonMembers = list.filter(u => u.id !== currentUser.id && u.role !== 'Admin' && !selectedCommunity.members.includes(u.id));
+                              return nonMembers.map(u => (
+                                <option key={u.id} value={u.id}>{u.name} ({u.role})</option>
+                              ));
+                            })()}
+                          </select>
+                          <button
+                            onClick={async () => {
+                              if (!inviteUserId) return;
+                              setInviting(true);
+                              setInviteError('');
+                              try {
+                                const res = await joinCommunity(token, selectedCommunity.communityId, inviteUserId);
+                                if (res.success) {
+                                  fetchAllData();
+                                  setSelectedCommunity(res.community);
+                                  setInviteUserId('');
+                                  setInviteError('');
+                                }
+                              } catch (err: any) {
+                                setInviteError(err.message || 'Failed to add member.');
+                              } finally {
+                                setInviting(false);
+                              }
+                            }}
+                            disabled={inviting || !inviteUserId}
+                            className="px-4 py-2 bg-[var(--primary)] text-white text-xs font-bold rounded-lg hover:bg-[var(--primary-dark)] disabled:opacity-50 cursor-pointer"
+                          >
+                            {inviting ? 'Adding...' : 'Add'}
+                          </button>
+                        </div>
+                        {inviteError && <p className="text-[10px] text-red-500 font-bold mt-1">{inviteError}</p>}
+                      </div>
+                    )}
+
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
                       {selectedCommunity.members.map((memberId) => {
                         const isCreator = selectedCommunity.creatorId === memberId;
+                        const isMod = selectedCommunity.admins.includes(memberId);
+                        const memberInfo = getUserInfo(memberId);
+                        
                         return (
-                          <div key={memberId} className="flex items-center gap-3 p-2 rounded-lg bg-[var(--bg-elevated)]">
-                            <div className="w-7 h-7 rounded-full bg-[var(--primary)] text-white flex items-center justify-center text-xs font-bold uppercase">
-                              {memberId.slice(0, 2)}
+                          <div key={memberId} className="flex items-center gap-3 p-2.5 rounded-lg bg-[var(--bg-elevated)] text-left">
+                            <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold text-white bg-gradient-to-br overflow-hidden ${memberInfo.color}`}>
+                              {memberInfo.avatar && (memberInfo.avatar.startsWith('http') || memberInfo.avatar.includes('.')) ? (
+                                <img src={memberInfo.avatar} className="w-full h-full object-cover rounded-lg" alt="" />
+                              ) : (
+                                memberInfo.initials
+                              )}
                             </div>
                             <div className="overflow-hidden">
                               <p className="text-xs font-semibold truncate text-[var(--text-primary)] flex items-center gap-1.5">
-                                User {memberId.slice(-5)}
-                                {isCreator && <span title="Creator / Owner"><Shield size={12} className="text-amber-500" /></span>}
+                                {memberInfo.name}
+                                {isCreator && <span title="Group Host"><Shield size={12} className="text-amber-500" /></span>}
+                                {isMod && !isCreator && <span title="Group Moderator"><Shield size={12} className="text-purple-400" /></span>}
                               </p>
-                              <p className="text-[10px] text-stone-400">{isCreator ? 'Group Owner' : 'Member'}</p>
+                              <p className="text-[9px] text-stone-400 font-medium">
+                                {isCreator ? 'Group Host' : isMod ? 'Group Moderator' : 'Member'}
+                              </p>
                             </div>
                           </div>
                         );

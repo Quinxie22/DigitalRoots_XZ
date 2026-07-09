@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import type { User } from '../types';
-import { Loader, Mail, Lock, User as UserIcon, ArrowRight, BookOpen, Sparkles, Heart } from 'lucide-react';
+import { Loader, Mail, Lock, User as UserIcon, ArrowRight, BookOpen, Sparkles, Heart, Eye, EyeOff } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import {
   signInWithEmailAndPassword,
@@ -39,10 +39,24 @@ export default function Login({ onLogin }: LoginProps) {
   const [email, setEmail]         = useState('');
   const [password, setPassword]   = useState('');
   const [name, setName]           = useState('');
-  const [age, setAge]             = useState<number | ''>('');
+  const [dateOfBirth, setDateOfBirth] = useState('');
+
+  const calculateAge = (dobString: string): number => {
+    if (!dobString) return 0;
+    const dob = new Date(dobString);
+    if (isNaN(dob.getTime())) return 0;
+    const today = new Date();
+    let calculatedAge = today.getFullYear() - dob.getFullYear();
+    const m = today.getMonth() - dob.getMonth();
+    if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) {
+      calculatedAge--;
+    }
+    return calculatedAge;
+  };
   const [error, setError]         = useState('');
   const [loading, setLoading]     = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   // Forgot password state
   const [showForgotPassword, setShowForgotPassword] = useState(false);
@@ -99,14 +113,15 @@ export default function Login({ onLogin }: LoginProps) {
 
     try {
       if (isRegister) {
-        // â”€â”€ REGISTRATION â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        // ── REGISTRATION ────────────────────────────────────────────────────────
         // 1. Create Firebase account (for credential management)
         const credential = await createUserWithEmailAndPassword(auth, email, password);
         const idToken     = await credential.user.getIdToken();
 
         // 2. Exchange for our internal JWT, passing the chosen role + name
-        const calculatedRole = Number(age) >= 40 ? 'Elder' : 'Youth';
-        const { data, ok } = await exchangeFirebaseToken(idToken, { role: calculatedRole, name, age } as any);
+        const calculatedAge = calculateAge(dateOfBirth);
+        const calculatedRole = calculatedAge >= 40 ? 'Elder' : 'Youth';
+        const { data, ok } = await exchangeFirebaseToken(idToken, { role: calculatedRole, name, dateOfBirth } as any);
         if (!ok) throw new Error(data.message || 'Registration failed');
 
         sessionStorage.setItem('token', data.token);
@@ -120,7 +135,27 @@ export default function Login({ onLogin }: LoginProps) {
 
       } else {
         // â”€â”€ LOGIN â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-        // Attempt Firebase authentication first (works for Firebase-registered users)
+        // 1. Pre-check if the email is registered in MongoDB
+        try {
+          const checkRes = await fetch(`${USER_SERVICE_URL}/api/users/check-email?email=${encodeURIComponent(email.trim())}`);
+          if (checkRes.ok) {
+            const checkData = await checkRes.json();
+            if (!checkData.exists) {
+              setError('No account found with this email. Redirecting to Sign Up...');
+              setTimeout(() => {
+                setIsRegister(true);
+                setView('register');
+                setError('');
+              }, 2000);
+              setLoading(false);
+              return;
+            }
+          }
+        } catch (checkErr) {
+          console.warn('[Login] Precheck email exists failed:', checkErr);
+        }
+
+        // 2. Attempt Firebase authentication first (works for Firebase-registered users)
         try {
           const credential = await signInWithEmailAndPassword(auth, email, password);
           const idToken     = await credential.user.getIdToken();
@@ -635,22 +670,19 @@ export default function Login({ onLogin }: LoginProps) {
             {isRegister && (
               <div className="space-y-1.5 text-left animate-slide-in">
                 <label className="text-[10px] uppercase font-extrabold tracking-wider text-stone-455 dark:text-stone-400">
-                  {t('ageLabel')}
+                  Date of Birth
                 </label>
                 <input
-                  type="number"
+                  type="date"
                   required
-                  min="0"
-                  max="120"
-                  placeholder={t('enterAgePlaceholder')}
-                  value={age}
-                  onChange={(e) => setAge(e.target.value ? parseInt(e.target.value) : '')}
+                  value={dateOfBirth}
+                  onChange={(e) => setDateOfBirth(e.target.value)}
                   className="w-full px-4 py-2.5 text-xs rounded-xl outline-none border transition-all dark:bg-[#1a1a24] text-stone-800 dark:text-white dark:border-stone-800 focus:border-red-500/50"
                   style={{ borderColor: 'var(--border)' }}
                 />
-                {age !== '' && (
+                {dateOfBirth !== '' && (
                   <p className="text-[11px] text-stone-400 mt-2 leading-relaxed text-left">
-                    {t('ageHelper')} <span className="font-bold text-red-500">{Number(age) >= 40 ? t('senior') : t('youth')}</span>.
+                    {t('ageHelper')} <span className="font-bold text-red-500">{calculateAge(dateOfBirth) >= 40 ? t('senior') : t('youth')}</span> (Age: {calculateAge(dateOfBirth)}).
                   </p>
                 )}
               </div>
@@ -717,19 +749,26 @@ export default function Login({ onLogin }: LoginProps) {
                   <Lock size={14} />
                 </span>
                 <input
-                  type="password"
+                  type={showPassword ? "text" : "password"}
                   required
                   placeholder={t('passwordPlaceholder')}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2.5 text-xs rounded-xl outline-none border transition-all dark:bg-[#1a1a24] text-stone-800 dark:text-white dark:border-stone-800 focus:border-red-500/50"
+                  className="w-full pl-10 pr-10 py-2.5 text-xs rounded-xl outline-none border transition-all dark:bg-[#1a1a24] text-stone-800 dark:text-white dark:border-stone-800 focus:border-red-500/50"
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600 dark:hover:text-stone-300 focus:outline-none cursor-pointer flex items-center justify-center"
+                >
+                  {showPassword ? <EyeOff size={14} /> : <Eye size={14} />}
+                </button>
               </div>
             </div>
 
             <button
               type="submit"
-              disabled={loading || googleLoading || (isRegister && age === '')}
+              disabled={loading || googleLoading || (isRegister && dateOfBirth === '')}
               className="w-full py-3 rounded-xl text-white font-bold text-xs transition-all hover:opacity-95 active:scale-[0.98] shadow-md flex items-center justify-center gap-1.5 cursor-pointer mt-6 disabled:opacity-50 disabled:cursor-not-allowed"
               style={{ background: 'var(--primary)' }}
             >

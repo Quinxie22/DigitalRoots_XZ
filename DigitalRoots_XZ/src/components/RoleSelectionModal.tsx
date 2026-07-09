@@ -24,20 +24,33 @@ export default function RoleSelectionModal({
   onError,
 }: RoleSelectionModalProps) {
   const { t } = useTranslation();
-  const [age, setAge] = useState<number | ''>('');
+  const [dateOfBirth, setDateOfBirth] = useState('');
   const [saving, setSaving] = useState(false);
 
+  const calculateAge = (dobString: string): number => {
+    if (!dobString) return 0;
+    const dob = new Date(dobString);
+    if (isNaN(dob.getTime())) return 0;
+    const today = new Date();
+    let calculatedAge = today.getFullYear() - dob.getFullYear();
+    const m = today.getMonth() - dob.getMonth();
+    if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) {
+      calculatedAge--;
+    }
+    return calculatedAge;
+  };
+
   const handleConfirm = async () => {
-    if (age === '') return;
-    const calculatedRole = Number(age) >= 40 ? 'Elder' : 'Youth';
+    if (dateOfBirth === '') return;
+    const age = calculateAge(dateOfBirth);
+    const calculatedRole = age >= 40 ? 'Elder' : 'Youth';
     setSaving(true);
     try {
-      // Re-call firebase-login, this time with the chosen role.
-      // The backend will now create the MongoDB profile and issue the JWT.
+      // Re-call firebase-login, this time with the chosen role and dateOfBirth.
       const res = await fetch(`${USER_SERVICE_URL}/api/users/firebase-login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ idToken, role: calculatedRole, name: pendingUser.name, age }),
+        body: JSON.stringify({ idToken, role: calculatedRole, name: pendingUser.name, dateOfBirth }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'Failed to create profile');
@@ -49,7 +62,7 @@ export default function RoleSelectionModal({
     }
   };
 
-  const roleName = age !== '' ? (Number(age) >= 40 ? t('senior') : t('youth')) : '';
+  const roleName = dateOfBirth !== '' ? (calculateAge(dateOfBirth) >= 40 ? t('senior') : t('youth')) : '';
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-md animate-fade-in p-4">
@@ -74,25 +87,22 @@ export default function RoleSelectionModal({
           </p>
         </div>
 
-        {/* Age Input */}
+        {/* DOB Input */}
         <div className="flex flex-col gap-3 mb-6 text-left">
           <label className="text-[10px] uppercase font-extrabold tracking-wider text-stone-400 dark:text-stone-500">
-            {t('roleSelectionLabel')}
+            Date of Birth
           </label>
           <input
-            type="number"
+            type="date"
             required
-            min="0"
-            max="120"
-            placeholder={t('roleSelectionPlaceholder')}
-            value={age}
-            onChange={(e) => setAge(e.target.value ? parseInt(e.target.value) : '')}
+            value={dateOfBirth}
+            onChange={(e) => setDateOfBirth(e.target.value)}
             className="w-full px-4 py-2.5 text-xs rounded-xl outline-none border transition-all bg-[var(--bg-elevated)] text-stone-850 dark:text-white dark:border-stone-800 focus:border-red-500/50"
             style={{ borderColor: 'var(--border)' }}
           />
-          {age !== '' && (
+          {dateOfBirth !== '' && (
             <p className="text-[11px] text-stone-400 mt-2 leading-relaxed">
-              {t('roleSelectionCalculated')} <span className="font-bold text-red-500">{Number(age) >= 40 ? t('senior') : t('youth')}</span>.
+              {t('roleSelectionCalculated')} <span className="font-bold text-red-500">{calculateAge(dateOfBirth) >= 40 ? t('senior') : t('youth')}</span> (Age: {calculateAge(dateOfBirth)}).
             </p>
           )}
         </div>
@@ -100,7 +110,7 @@ export default function RoleSelectionModal({
         {/* Confirm button */}
         <button
           onClick={handleConfirm}
-          disabled={age === '' || saving}
+          disabled={dateOfBirth === '' || saving}
           className="w-full py-3.5 rounded-2xl text-white font-bold text-sm flex items-center justify-center gap-2 transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
           style={{ background: 'var(--primary)' }}
         >

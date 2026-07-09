@@ -1,12 +1,14 @@
 import { Router } from 'express';
 import { 
   register, login, getProfile, verify, getAllUsers, updateProfile, 
-  updatePointsAndBadges, createAdmin, firebaseLogin, updateUserStatus, updateUserRole 
+  updatePointsAndBadges, createAdmin, firebaseLogin, updateUserStatus, updateUserRole,
+  checkEmailExists, deleteUser
 } from '../controllers/user.controller';
 import { verifyToken, requireRole } from '../middleware/auth.middleware';
 
 const router = Router();
 
+router.get('/check-email', checkEmailExists);
 router.post('/register', register);
 router.post('/login', login);
 router.post('/firebase-login', firebaseLogin);          // Firebase Auth (Email/Password + Google)
@@ -14,6 +16,7 @@ router.post('/admins', verifyToken as any, requireRole(['Admin']) as any, create
 router.get('/', verifyToken as any, getAllUsers as any);
 router.get('/profile', verifyToken as any, getProfile as any);
 router.put('/profile', verifyToken as any, updateProfile as any);
+router.delete('/:userId', verifyToken as any, deleteUser as any);
 router.put('/:userId/rewards', updatePointsAndBadges as any);
 router.get('/verify', verifyToken as any, verify as any);
 

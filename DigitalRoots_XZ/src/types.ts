@@ -15,6 +15,7 @@ export interface User {
   legacyCredits?: number;
   badges?: string[];
   age?: number;
+  dateOfBirth?: string;
 }
 
 export interface Message {

@@ -34,9 +34,9 @@ const userSchema = new Schema(
       enum: ['Active', 'Suspended', 'Banned'],
       default: 'Active',
     },
-    age: {
-      type: Number,
-      default: 0,
+    dateOfBirth: {
+      type: Date,
+      default: null,
     },
     avatar: {
       type: String,
@@ -87,5 +87,24 @@ userSchema.pre('save', async function (this: any) {
 userSchema.methods.comparePassword = async function (password: string): Promise<boolean> {
   return bcrypt.compare(password, this.password);
 };
+
+// Dynamic virtual age property
+userSchema.virtual('age').get(function (this: any) {
+  if (!this.dateOfBirth) return 0;
+  const dob = new Date(this.dateOfBirth);
+  if (isNaN(dob.getTime())) return 0;
+  
+  const today = new Date();
+  let calculatedAge = today.getFullYear() - dob.getFullYear();
+  const monthDiff = today.getMonth() - dob.getMonth();
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < dob.getDate())) {
+    calculatedAge--;
+  }
+  return calculatedAge;
+});
+
+// Include virtuals in toJSON and toObject output
+userSchema.set('toJSON', { virtuals: true });
+userSchema.set('toObject', { virtuals: true });
 
 export const User = model('User', userSchema);

@@ -99,9 +99,10 @@ export class CommunityController {
   static async joinCommunity(req: AuthRequest, res: Response): Promise<void> {
     try {
       const { communityId } = req.params;
-      const userId = req.user?.firebase_uid;
+      const requesterId = req.user?.firebase_uid;
+      const { userId: targetUserId } = req.body || {};
 
-      if (!userId) {
+      if (!requesterId) {
         res.status(401).json({ success: false, error: 'Unauthorized' });
         return;
       }
@@ -112,12 +113,23 @@ export class CommunityController {
         return;
       }
 
-      if (community.members.includes(userId)) {
-        res.status(400).json({ success: false, error: 'You are already a member of this community' });
+      let userToAdd = requesterId;
+      if (targetUserId && targetUserId !== requesterId) {
+        // Check if the requester is creator or admin of this community
+        const isAuthorized = community.creatorId === requesterId || community.admins.includes(requesterId);
+        if (!isAuthorized) {
+          res.status(403).json({ success: false, error: 'Only group hosts or moderators can add members directly' });
+          return;
+        }
+        userToAdd = targetUserId;
+      }
+
+      if (community.members.includes(userToAdd)) {
+        res.status(400).json({ success: false, error: 'User is already a member of this community' });
         return;
       }
 
-      community.members.push(userId);
+      community.members.push(userToAdd);
       community.memberCount = community.members.length;
       await community.save();
 

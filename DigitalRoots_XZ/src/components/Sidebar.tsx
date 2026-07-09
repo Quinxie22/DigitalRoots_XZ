@@ -78,9 +78,9 @@ function getUserInfo(userId: string) {
 
   return {
     id: userId,
-    name: userId,
-    initials: typeof userId === 'string' && userId ? userId.slice(0, 2).toUpperCase() : '??',
-    color: 'from-gray-600 to-gray-800',
+    name: 'Not Available',
+    initials: 'NA',
+    color: 'from-gray-650 to-gray-800',
     role: 'Youth',
     avatar: ''
   };

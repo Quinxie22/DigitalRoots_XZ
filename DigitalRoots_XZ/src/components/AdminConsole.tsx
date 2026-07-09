@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Shield, Search, User as UserIcon, ShieldAlert, EyeOff, FileText, Loader, Check, Ban, UserCheck, AlertTriangle } from 'lucide-react';
+import { Shield, Search, User as UserIcon, ShieldAlert, EyeOff, FileText, Loader, Check, Ban, UserCheck, AlertTriangle, Trash2 } from 'lucide-react';
 import { 
   getAllUsersList, updateUserStatus, updateUserRole, 
   getFlaggedPosts, hidePost, getAuditLogs, resolveContentUrl 
@@ -81,6 +81,31 @@ export default function AdminConsole({ token, currentUser }: AdminConsoleProps) 
       setUsers(data.users || []);
     } catch (err: any) {
       setError(err.message || 'Failed to update user role');
+    }
+  };
+
+  const handleDeleteUser = async (userId: string) => {
+    if (!window.confirm("WARNING: This will permanently delete this user and cascade-delete all their posts, messages, mentoring sessions, and rewards. This action is IRREVERSIBLE. Are you absolutely sure?")) {
+      return;
+    }
+    setError('');
+    setSuccess('');
+    const userServiceUrl = import.meta.env.VITE_USER_SERVICE_URL || 'http://localhost:3006';
+    try {
+      const res = await fetch(`${userServiceUrl}/api/users/${userId}`, {
+        method: 'DELETE',
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Failed to delete user');
+      setSuccess('User and all associated data permanently deleted successfully');
+      // Refresh user listing
+      const usersData = await getAllUsersList(token);
+      setUsers(usersData.users || []);
+    } catch (err: any) {
+      setError(err.message || 'Failed to delete user');
     }
   };
 
@@ -304,6 +329,13 @@ export default function AdminConsole({ token, currentUser }: AdminConsoleProps) 
                                     <UserCheck size={11} /> Unsuspend
                                   </button>
                                 )}
+                                <button
+                                  onClick={() => handleDeleteUser(u._id)}
+                                  className="p-1.5 rounded-lg bg-red-600/10 border border-red-600/20 text-red-500 hover:bg-red-600/20 transition-all cursor-pointer font-bold inline-flex items-center gap-1 text-[9px]"
+                                  title="Delete User permanently"
+                                >
+                                  <Trash2 size={11} /> Delete
+                                </button>
                               </td>
                             </tr>
                           );

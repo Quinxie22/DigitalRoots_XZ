@@ -59,3 +59,12 @@ export const verifyFirebaseToken = async (token: string): Promise<any> => {
   return await getAuth().verifyIdToken(token);
 };
 
+export const deleteFirebaseUser = async (uid: string): Promise<void> => {
+  initFirebase();
+  if (isMock) {
+    logger.warn(`[Firebase] Mock Mode: Skipping deletion of Firebase user ${uid}`);
+    return;
+  }
+  await getAuth().deleteUser(uid);
+};
+

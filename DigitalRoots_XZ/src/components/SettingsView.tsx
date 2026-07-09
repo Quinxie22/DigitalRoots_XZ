@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import type { User } from '../types';
-import { Loader, User as UserIcon, ShieldAlert, Check, Lock, Camera, Sun, Moon, Globe } from 'lucide-react';
+import { Loader, User as UserIcon, ShieldAlert, Check, Lock, Camera, Sun, Moon, Globe, Eye, EyeOff, Trash2 } from 'lucide-react';
 import { uploadGenericFile, resolveMediaUrl } from '../api';
 import { useTranslation } from 'react-i18next';
 
@@ -37,12 +37,58 @@ export default function SettingsView({
   const [selectedLangs, setSelectedLangs] = useState<string[]>(currentUser.languages || ['English']);
   const [selectedCats, setSelectedCats] = useState<string[]>(currentUser.contentPreferences || []);
   const [avatar, setAvatar] = useState(currentUser.avatar || '');
-  const [age, setAge] = useState(currentUser.age?.toString() || '');
+  const [dateOfBirth, setDateOfBirth] = useState(currentUser.dateOfBirth ? new Date(currentUser.dateOfBirth).toISOString().split('T')[0] : '');
   const [role, setRole] = useState(currentUser.role || 'Youth');
+
+  const [deletingAccount, setDeletingAccount] = useState(false);
+
+  const calculateAge = (dobString: string): number => {
+    if (!dobString) return 0;
+    const dob = new Date(dobString);
+    if (isNaN(dob.getTime())) return 0;
+    const today = new Date();
+    let calculatedAge = today.getFullYear() - dob.getFullYear();
+    const m = today.getMonth() - dob.getMonth();
+    if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) {
+      calculatedAge--;
+    }
+    return calculatedAge;
+  };
+
+  const handleDeleteAccount = async () => {
+    if (!window.confirm("WARNING: This will permanently delete your account and all associated data (posts, chats, mentoring pairings, and rewards). This action is IRREVERSIBLE. Are you absolutely sure?")) {
+      return;
+    }
+    
+    setDeletingAccount(true);
+    setError('');
+    try {
+      const token = sessionStorage.getItem('token') || localStorage.getItem('token') || '';
+      const res = await fetch(`${USER_SERVICE_URL}/api/users/${currentUser.id}`, {
+        method: 'DELETE',
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Failed to delete account');
+      
+      alert("Your account and all associated data have been permanently deleted. You will now be redirected to the sign-up screen.");
+      if (onLogout) {
+        onLogout();
+      }
+    } catch (err: any) {
+      setError(err.message || 'Error deleting account.');
+    } finally {
+      setDeletingAccount(false);
+    }
+  };
   
   // Password change states
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   
   // UI states
   const [savingProfile, setSavingProfile] = useState(false);
@@ -123,7 +169,7 @@ export default function SettingsView({
           languages: selectedLangs,
           contentPreferences: selectedCats,
           avatar,
-          age: age ? Number(age) : undefined,
+          dateOfBirth: dateOfBirth || undefined,
           role
         })
       });
@@ -337,32 +383,31 @@ export default function SettingsView({
                 />
               </div>
 
-              {/* Age & Role Fields */}
+              {/* DOB & Role Fields */}
               <div className="grid grid-cols-2 gap-4">
                 <div className="flex flex-col gap-1.5 text-left">
-                  <label className="text-[10px] uppercase font-extrabold tracking-wider text-stone-400">{t('age', 'Age')}</label>
+                  <label className="text-[10px] uppercase font-extrabold tracking-wider text-stone-400">Date of Birth</label>
                   <input
-                    type="number"
-                    value={age}
+                    type="date"
+                    value={dateOfBirth}
                     onChange={(e) => {
                       const val = e.target.value;
-                      setAge(val);
-                      const parsed = parseInt(val, 10);
-                      if (!isNaN(parsed)) {
-                        setRole(parsed >= 40 ? 'Elder' : 'Youth');
+                      setDateOfBirth(val);
+                      if (val) {
+                        const calculatedAge = calculateAge(val);
+                        setRole(calculatedAge >= 40 ? 'Elder' : 'Youth');
                       }
                     }}
-                    placeholder="Your age..."
                     className="px-4 py-2.5 rounded-xl border outline-none text-xs bg-[var(--bg-elevated)] w-full text-white"
                     style={{ borderColor: 'var(--border)' }}
                   />
                 </div>
 
                 <div className="flex flex-col gap-1.5 text-left">
-                  <label className="text-[10px] uppercase font-extrabold tracking-wider text-stone-400">{t('role', 'Role')}</label>
+                  <label className="text-[10px] uppercase font-extrabold tracking-wider text-stone-400">Calculated Age & Role</label>
                   <input
                     type="text"
-                    value={role === 'Elder' ? t('senior', 'Elder') : role === 'Youth' ? t('youth', 'Youth') : role}
+                    value={dateOfBirth ? `${calculateAge(dateOfBirth)} years old (${role === 'Elder' ? t('senior', 'Elder') : role === 'Youth' ? t('youth', 'Youth') : role})` : 'Select DOB...'}
                     readOnly
                     disabled
                     className="px-4 py-2.5 rounded-xl border outline-none text-xs bg-[var(--bg-elevated)] w-full text-stone-450 cursor-not-allowed opacity-75"
@@ -474,26 +519,44 @@ export default function SettingsView({
               
               <div className="flex flex-col gap-1.5 text-left">
                 <label className="text-[10px] uppercase font-extrabold tracking-wider text-stone-400">{t('newPassword')}</label>
-                <input
-                  type="password"
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  placeholder="••••••••"
-                  className="px-4 py-2.5 rounded-xl border outline-none text-xs bg-[var(--bg-elevated)] w-full text-white"
-                  style={{ borderColor: 'var(--border)' }}
-                />
+                <div className="relative">
+                  <input
+                    type={showNewPassword ? "text" : "password"}
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    placeholder="••••••••"
+                    className="pl-4 pr-10 py-2.5 rounded-xl border outline-none text-xs bg-[var(--bg-elevated)] w-full text-white"
+                    style={{ borderColor: 'var(--border)' }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowNewPassword(!showNewPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-300 focus:outline-none cursor-pointer flex items-center justify-center"
+                  >
+                    {showNewPassword ? <EyeOff size={14} /> : <Eye size={14} />}
+                  </button>
+                </div>
               </div>
 
               <div className="flex flex-col gap-1.5 text-left">
                 <label className="text-[10px] uppercase font-extrabold tracking-wider text-stone-400">{t('confirmNewPassword')}</label>
-                <input
-                  type="password"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  placeholder="••••••••"
-                  className="px-4 py-2.5 rounded-xl border outline-none text-xs bg-[var(--bg-elevated)] w-full text-white"
-                  style={{ borderColor: 'var(--border)' }}
-                />
+                <div className="relative">
+                  <input
+                    type={showConfirmPassword ? "text" : "password"}
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    placeholder="••••••••"
+                    className="pl-4 pr-10 py-2.5 rounded-xl border outline-none text-xs bg-[var(--bg-elevated)] w-full text-white"
+                    style={{ borderColor: 'var(--border)' }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-300 focus:outline-none cursor-pointer flex items-center justify-center"
+                  >
+                    {showConfirmPassword ? <EyeOff size={14} /> : <Eye size={14} />}
+                  </button>
+                </div>
               </div>
 
               <div className="pt-2">
@@ -573,6 +636,33 @@ export default function SettingsView({
             <hr className="opacity-10 md:hidden" style={{ borderColor: 'var(--border)' }} />
           </>
         )}
+
+        {/* Danger Zone: Account Deletion */}
+        <div className="bg-red-500/5 rounded-2xl border border-red-500/20 p-5 flex flex-col gap-3 text-left">
+          <div className="flex items-center gap-2 text-red-500 font-bold text-sm">
+            <Trash2 size={16} />
+            <h4>Danger Zone</h4>
+          </div>
+          <p className="text-xs text-stone-400 leading-relaxed">
+            Permanently delete your profile and wipe all related documents including stories, posts, private messages, pairing requests, and rewards. This action cannot be undone.
+          </p>
+          <div className="mt-1">
+            <button
+              onClick={handleDeleteAccount}
+              disabled={deletingAccount}
+              className="px-4 py-2 bg-red-600 hover:bg-red-500 disabled:opacity-50 text-white text-xs font-bold rounded-xl transition-all cursor-pointer flex items-center gap-1.5 shadow-sm"
+            >
+              {deletingAccount ? (
+                <>
+                  <Loader className="animate-spin" size={13} />
+                  <span>Deleting Account...</span>
+                </>
+              ) : (
+                <span>Delete Account</span>
+              )}
+            </button>
+          </div>
+        </div>
 
         {/* UI Language Selection Section */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 animate-fade-in">

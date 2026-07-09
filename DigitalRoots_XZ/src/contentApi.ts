@@ -510,10 +510,14 @@ export async function createCommunity(token: string, body: { name: string; descr
   return res.json();
 }
 
-export async function joinCommunity(token: string, communityId: string) {
+export async function joinCommunity(token: string, communityId: string, userId?: string) {
   const res = await fetch(`${CONTENT_URL}/api/content/communities/${communityId}/join`, {
     method: 'POST',
-    headers: authHeaders(token),
+    headers: {
+      ...authHeaders(token),
+      'Content-Type': 'application/json',
+    },
+    body: userId ? JSON.stringify({ userId }) : undefined,
   });
   if (!res.ok) throw new Error(`joinCommunity failed: ${res.status}`);
   return res.json();

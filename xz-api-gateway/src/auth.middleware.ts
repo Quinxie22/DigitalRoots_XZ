@@ -21,6 +21,7 @@ const getJWTSecret = (): string =>
 
 // Routes that do NOT require authentication
 const PUBLIC_ROUTES: Array<{ method?: string; path: string }> = [
+  { method: 'GET', path: '/api/users/check-email' },
   { method: 'POST', path: '/api/users/login' },
   { method: 'POST', path: '/api/users/register' },
   { method: 'POST', path: '/api/users/firebase-login' },

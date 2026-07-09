@@ -1,8 +1,9 @@
 import { Request, Response } from 'express';
+import mongoose from 'mongoose';
 import jwt from 'jsonwebtoken';
 import { User } from '../models/user.model';
 import { AuthRequest } from '../middleware/auth.middleware';
-import { verifyFirebaseToken } from '../config/firebase';
+import { verifyFirebaseToken, deleteFirebaseUser } from '../config/firebase';
 
 const getJWTSecret = () => process.env.JWT_SECRET || 'xz_jwt_secret_shared_2026_key';
 const getJWTExpiry = () => process.env.JWT_EXPIRY || '24h';
@@ -15,8 +16,22 @@ const getInitials = (name: string): string => {
   return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 };
 
+// Helper to calculate age from date of birth
+const calculateAge = (dobString: any): number => {
+  if (!dobString) return 0;
+  const dob = new Date(dobString);
+  if (isNaN(dob.getTime())) return 0;
+  const today = new Date();
+  let calculatedAge = today.getFullYear() - dob.getFullYear();
+  const monthDiff = today.getMonth() - dob.getMonth();
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < dob.getDate())) {
+    calculatedAge--;
+  }
+  return calculatedAge;
+};
+
 export const register = async (req: Request, res: Response): Promise<void> => {
-  const { email, password, name, role, avatar, age } = req.body;
+  const { email, password, name, role, avatar, dateOfBirth } = req.body;
 
   if (!email || !password || !name) {
     res.status(400).json({ error: 'Validation Error', message: 'Email, password, and name are required' });
@@ -36,8 +51,8 @@ export const register = async (req: Request, res: Response): Promise<void> => {
     }
 
     const calculatedAvatar = avatar || getInitials(name);
-    const calculatedAge = age ? Number(age) : 0;
-    const userRole = calculatedAge >= 40 ? 'Elder' : 'Youth';
+    const calculatedAge = calculateAge(dateOfBirth);
+    const userRole = role || (calculatedAge >= 40 ? 'Elder' : 'Youth');
 
     const newUser = new User({
       email,
@@ -45,7 +60,7 @@ export const register = async (req: Request, res: Response): Promise<void> => {
       name,
       role: userRole,
       avatar: calculatedAvatar,
-      age: calculatedAge,
+      dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : null,
     });
 
     await newUser.save();
@@ -71,7 +86,8 @@ export const register = async (req: Request, res: Response): Promise<void> => {
         name: newUser.name,
         role: newUser.role,
         avatar: newUser.avatar,
-        age: newUser.age,
+        dateOfBirth: newUser.dateOfBirth,
+        age: (newUser as any).age,
         bio: newUser.bio,
         languages: newUser.languages,
         community: newUser.community,
@@ -139,7 +155,8 @@ export const login = async (req: Request, res: Response): Promise<void> => {
         contentPreferences: user.contentPreferences,
         legacyCredits: user.legacyCredits,
         badges: user.badges,
-        age: user.age,
+        dateOfBirth: (user as any).dateOfBirth,
+        age: (user as any).age,
       },
     });
   } catch (error: any) {
@@ -173,7 +190,8 @@ export const getProfile = async (req: AuthRequest, res: Response): Promise<void>
         contentPreferences: user.contentPreferences,
         legacyCredits: user.legacyCredits,
         badges: user.badges,
-        age: user.age,
+        dateOfBirth: (user as any).dateOfBirth,
+        age: (user as any).age,
       }
     });
   } catch (error: any) {
@@ -215,7 +233,7 @@ export const updateProfile = async (req: AuthRequest, res: Response): Promise<vo
     return;
   }
 
-  const { name, bio, languages, community, contentPreferences, avatar, password, age, role } = req.body;
+  const { name, bio, languages, community, contentPreferences, avatar, password, dateOfBirth, role } = req.body;
 
   try {
     const user = await User.findById(req.user.id);
@@ -230,10 +248,12 @@ export const updateProfile = async (req: AuthRequest, res: Response): Promise<vo
     if (contentPreferences !== undefined) user.contentPreferences = contentPreferences;
     if (avatar !== undefined) user.avatar = avatar;
     if (password !== undefined && password.trim() !== '') user.password = password;
-    if (age !== undefined) {
-      const calculatedAge = Number(age);
-      user.age = calculatedAge;
-      user.role = calculatedAge >= 40 ? 'Elder' : 'Youth';
+    if (dateOfBirth !== undefined) {
+      (user as any).dateOfBirth = dateOfBirth ? new Date(dateOfBirth) : null;
+      if (dateOfBirth) {
+        const calculatedAge = calculateAge(dateOfBirth);
+        user.role = role || (calculatedAge >= 40 ? 'Elder' : 'Youth');
+      }
     }
 
     if (languages !== undefined) {
@@ -256,7 +276,8 @@ export const updateProfile = async (req: AuthRequest, res: Response): Promise<vo
         contentPreferences: user.contentPreferences,
         legacyCredits: user.legacyCredits,
         badges: user.badges,
-        age: user.age,
+        dateOfBirth: (user as any).dateOfBirth,
+        age: (user as any).age,
       }
     });
   } catch (error: any) {
@@ -369,7 +390,14 @@ export const createAdmin = async (req: AuthRequest, res: Response): Promise<void
 //   name     (string, optional)  — Display name override
 // ─────────────────────────────────────────────────────────────────────────────
 export const firebaseLogin = async (req: Request, res: Response): Promise<void> => {
-  const { idToken, role, name: requestedName, age } = req.body;
+  console.log('[User Service] firebaseLogin payload:', {
+    hasToken: !!req.body.idToken,
+    tokenLength: req.body.idToken ? req.body.idToken.length : 0,
+    role: req.body.role,
+    name: req.body.name,
+    dateOfBirth: req.body.dateOfBirth
+  });
+  const { idToken, role, name: requestedName, dateOfBirth } = req.body;
 
   if (!idToken) {
     res.status(400).json({ error: 'Validation Error', message: 'Firebase idToken is required' });
@@ -379,6 +407,7 @@ export const firebaseLogin = async (req: Request, res: Response): Promise<void> 
   try {
     // Step 1 — Verify the Firebase ID Token
     const decoded = await verifyFirebaseToken(idToken);
+    console.log('[User Service] Decoded Firebase token claims:', decoded);
     const firebaseEmail: string = (decoded.email || '').toLowerCase().trim();
     const firebaseName: string = requestedName || decoded.name || decoded.email?.split('@')[0] || 'User';
     const firebaseUid: string = decoded.uid || '';
@@ -399,7 +428,7 @@ export const firebaseLogin = async (req: Request, res: Response): Promise<void> 
       // ── Returning user (legacy OR previously registered via Firebase) ──────
       // Link the Firebase UID if not already stored (e.g. legacy user signs in
       // with Google using the same email for the first time).
-      if (!user.firebaseUid && firebaseUid) {
+      if (user.firebaseUid !== firebaseUid) {
         user.firebaseUid = firebaseUid;
         await user.save();
       }
@@ -426,8 +455,8 @@ export const firebaseLogin = async (req: Request, res: Response): Promise<void> 
       }
 
       const initials = getInitials(firebaseName);
-      const calculatedAge = age ? Number(age) : 0;
-      const calculatedRole = calculatedAge >= 40 ? 'Elder' : 'Youth';
+      const calculatedAge = calculateAge(dateOfBirth);
+      const calculatedRole = role || (calculatedAge >= 40 ? 'Elder' : 'Youth');
 
       user = new User({
         email: firebaseEmail,
@@ -436,7 +465,7 @@ export const firebaseLogin = async (req: Request, res: Response): Promise<void> 
         name: firebaseName,
         role: calculatedRole,
         avatar: initials,
-        age: calculatedAge,
+        dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : null,
       });
       await user.save();
     }
@@ -472,7 +501,8 @@ export const firebaseLogin = async (req: Request, res: Response): Promise<void> 
         contentPreferences: user.contentPreferences,
         legacyCredits: user.legacyCredits,
         badges: user.badges,
-        age: user.age,
+        dateOfBirth: (user as any).dateOfBirth,
+        age: (user as any).age,
       },
     });
   } catch (error: any) {
@@ -553,6 +583,126 @@ export const updateUserRole = async (req: AuthRequest, res: Response): Promise<v
     res.status(200).json({ message: `User role updated to ${role} successfully`, user });
   } catch (error: any) {
     console.error('[User Service] Update user role error:', error);
+    res.status(500).json({ error: 'Internal Server Error', message: error.message });
+  }
+};
+
+export const checkEmailExists = async (req: Request, res: Response): Promise<void> => {
+  const { email } = req.query;
+  if (!email) {
+    res.status(400).json({ error: 'Validation Error', message: 'Email query parameter is required' });
+    return;
+  }
+  try {
+    const user = await User.findOne({ email: (email as string).toLowerCase().trim() });
+    res.status(200).json({ exists: !!user });
+  } catch (error: any) {
+    console.error('[User Service] Check email exists error:', error);
+    res.status(500).json({ error: 'Internal Server Error', message: error.message });
+  }
+};
+
+export const deleteUser = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const { userId } = req.params;
+
+    if (!req.user) {
+      res.status(401).json({ error: 'Unauthorized', message: 'Access denied' });
+      return;
+    }
+
+    // Permission check: user deleting themselves, or admin deleting
+    if (req.user.id !== userId && req.user.role !== 'Admin') {
+      res.status(403).json({ error: 'Forbidden', message: 'You do not have permission to delete this user' });
+      return;
+    }
+
+    const user = await User.findById(userId);
+    if (!user) {
+      res.status(404).json({ error: 'Not Found', message: 'User not found' });
+      return;
+    }
+
+    // 1. Delete from Firebase Auth if firebaseUid exists
+    if (user.firebaseUid) {
+      try {
+        await deleteFirebaseUser(user.firebaseUid);
+        console.log(`[User Service] Firebase user deleted for UID: ${user.firebaseUid}`);
+      } catch (fbErr: any) {
+        console.warn(`[User Service] Firebase user delete failed/ignored:`, fbErr.message);
+      }
+    }
+
+    // 2. Cascade delete all information concerning that user across databases
+    const dbConnection = mongoose.connection;
+
+    // Clean up content service database
+    const contentDb = dbConnection.useDb('xz_content');
+    await contentDb.collection('posts').deleteMany({ authorId: userId });
+    await contentDb.collection('stories').deleteMany({ authorId: userId });
+    await contentDb.collection('knowledgearticles').deleteMany({ authorId: userId });
+    
+    // Pull user comments and reactions from posts
+    await contentDb.collection('posts').updateMany(
+      {},
+      { $pull: { comments: { userId } } as any }
+    );
+    await contentDb.collection('posts').updateMany(
+      {},
+      { $pull: { 'reactions.$[].userIds': userId } as any }
+    );
+    
+    // Pull comments and reactions from stories
+    await contentDb.collection('stories').updateMany(
+      {},
+      { $pull: { comments: { userId } } as any }
+    );
+    
+    // Pull comments and reactions from knowledgearticles
+    await contentDb.collection('knowledgearticles').updateMany(
+      {},
+      { $pull: { comments: { userId } } as any }
+    );
+
+    // Remove user from communities (members and admins)
+    await contentDb.collection('communities').updateMany(
+      {},
+      { $pull: { members: userId, admins: userId } as any }
+    );
+    // If they created any community, delete it
+    await contentDb.collection('communities').deleteMany({ creatorId: userId });
+
+    // Clean up chat service database
+    const chatDb = dbConnection.useDb('xz_chat_db');
+    await chatDb.collection('messages').deleteMany({ senderId: userId });
+    await chatDb.collection('threads').updateMany(
+      {},
+      { $pull: { participants: userId } as any }
+    );
+
+    // Clean up session service database
+    const sessionDb = dbConnection.useDb('xz_sessions');
+    await sessionDb.collection('mentoringpairings').deleteMany({
+      $or: [{ youthId: userId }, { elderId: userId }]
+    });
+    await sessionDb.collection('sessions').deleteMany({
+      $or: [{ youthId: userId }, { elderId: userId }, { mentorId: userId }]
+    });
+
+    // Clean up notifications database
+    const notificationDb = dbConnection.useDb('xz_notifications');
+    await notificationDb.collection('notifications').deleteMany({ userId });
+
+    // Clean up point service database
+    const pointDb = dbConnection.useDb('xz_points');
+    await pointDb.collection('points').deleteMany({ userId });
+
+    // 3. Delete the user profile itself in user-service
+    await User.findByIdAndDelete(userId);
+
+    res.status(200).json({ success: true, message: 'User and all associated data deleted successfully.' });
+  } catch (error: any) {
+    console.error('[User Service] Delete user error:', error);
     res.status(500).json({ error: 'Internal Server Error', message: error.message });
   }
 };
