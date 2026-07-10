@@ -2261,7 +2261,7 @@ export default function App() {
           }>
             <HomeDashboard 
               currentUser={currentUser} 
-              token={currentUser.id} 
+              token={sessionStorage.getItem('token') || localStorage.getItem('token') || ''} 
               onNavigate={setActiveTab} 
               onPlayStory={(story) => { 
                 setAutoplayStory(story); 
@@ -2284,7 +2284,7 @@ export default function App() {
           }>
             <CommunityHub 
               currentUser={currentUser} 
-              token={currentUser.id} 
+              token={sessionStorage.getItem('token') || localStorage.getItem('token') || ''} 
             />
           </Suspense>
         </div>
@@ -2300,7 +2300,7 @@ export default function App() {
           }>
             <WisdomHub 
               currentUser={currentUser} 
-              token={currentUser.id} 
+              token={sessionStorage.getItem('token') || localStorage.getItem('token') || ''} 
             />
           </Suspense>
         </div>
@@ -2316,7 +2316,7 @@ export default function App() {
           }>
             <MemoryArchive 
               currentUser={currentUser} 
-              token={currentUser.id} 
+              token={sessionStorage.getItem('token') || localStorage.getItem('token') || ''} 
               autoPlayStory={autoplayStory} 
               onClearAutoPlay={() => setAutoplayStory(null)} 
             />
