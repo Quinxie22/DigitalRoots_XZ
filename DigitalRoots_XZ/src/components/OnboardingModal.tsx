@@ -89,7 +89,7 @@ export default function OnboardingModal({ currentUser, token, onComplete }: Onbo
           <div className="w-12 h-12 rounded-2xl flex items-center justify-center bg-red-100 dark:bg-red-950/40 text-red-500 mb-3">
             <Globe size={24} style={{ color: 'var(--primary)' }} />
           </div>
-          <h3 className="text-xl font-bold font-serif text-stone-850 dark:text-white">{t('onboardingTitle')}</h3>
+          <h3 className="text-xl font-bold font-serif text-stone-900 dark:text-white">{t('onboardingTitle')}</h3>
           <p className="text-xs text-stone-400 text-center mt-1">{t('onboardingDesc')}</p>
         </div>
 
@@ -108,7 +108,7 @@ export default function OnboardingModal({ currentUser, token, onComplete }: Onbo
               rows={2}
               required
               placeholder={t('onboardingBioPlaceholder')}
-              className="px-4 py-2.5 rounded-xl border outline-none text-xs bg-[var(--bg-elevated)] w-full resize-none text-stone-850 dark:text-white"
+              className="px-4 py-2.5 rounded-xl border outline-none text-xs bg-[var(--bg-elevated)] w-full resize-none text-stone-900 dark:text-white"
               style={{ borderColor: 'var(--border)' }}
             />
           </div>
@@ -121,7 +121,7 @@ export default function OnboardingModal({ currentUser, token, onComplete }: Onbo
               onChange={(e) => setCommunity(e.target.value)}
               required
               placeholder={t('onboardingCommunityPlaceholder')}
-              className="px-4 py-2.5 rounded-xl border outline-none text-xs bg-[var(--bg-elevated)] w-full text-stone-850 dark:text-white"
+              className="px-4 py-2.5 rounded-xl border outline-none text-xs bg-[var(--bg-elevated)] w-full text-stone-900 dark:text-white"
               style={{ borderColor: 'var(--border)' }}
             />
           </div>
@@ -162,7 +162,7 @@ export default function OnboardingModal({ currentUser, token, onComplete }: Onbo
                     type="button"
                     onClick={() => toggleCategory(cat)}
                     className={`text-[11px] px-3.5 py-1.5 rounded-full border transition-all ${
-                      isSelected ? 'bg-red-500/10 text-red-500 border-red-500/30 font-bold' : 'bg-transparent text-stone-450'
+                      isSelected ? 'bg-red-500/10 text-red-500 border-red-500/30 font-bold' : 'bg-transparent text-stone-500'
                     }`}
                     style={{ borderColor: isSelected ? 'var(--primary)' : 'var(--border)' }}
                   >

@@ -83,7 +83,7 @@ export default function RoleSelectionModal({
           >
             XZ
           </div>
-          <h3 className="text-xl font-bold font-serif text-stone-850 dark:text-white text-center">
+          <h3 className="text-xl font-bold font-serif text-stone-900 dark:text-white text-center">
             {t('roleSelectionWelcome')}, {pendingUser.name.split(' ')[0]}!
           </h3>
           <p className="text-xs text-stone-400 text-center mt-2 leading-relaxed">
@@ -101,7 +101,7 @@ export default function RoleSelectionModal({
             required
             value={dateOfBirth}
             onChange={(e) => setDateOfBirth(e.target.value)}
-            className="w-full px-4 py-2.5 text-xs rounded-xl outline-none border transition-all bg-[var(--bg-elevated)] text-stone-850 dark:text-white dark:border-stone-800 focus:border-red-500/50"
+            className="w-full px-4 py-2.5 text-xs rounded-xl outline-none border transition-all bg-[var(--bg-elevated)] text-stone-900 dark:text-white dark:border-stone-800 focus:border-red-500/50"
             style={{ borderColor: 'var(--border)' }}
           />
           {dateOfBirth !== '' && (

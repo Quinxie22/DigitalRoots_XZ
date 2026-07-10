@@ -499,7 +499,7 @@ export default function Login({ onLogin }: LoginProps) {
             <div className="w-10 h-10 rounded-2xl flex items-center justify-center mb-4" style={{ background: 'var(--primary-10)' }}>
               <Mail size={18} style={{ color: 'var(--primary)' }} />
             </div>
-            <h2 className="text-2xl font-bold font-serif text-stone-850 dark:text-white">Reset your password</h2>
+            <h2 className="text-2xl font-bold font-serif text-stone-900 dark:text-white">Reset your password</h2>
             <p className="text-xs text-stone-400 leading-relaxed">
               Enter your email address and we'll send you a link to reset your password.
               <br />
@@ -536,7 +536,7 @@ export default function Login({ onLogin }: LoginProps) {
               <div className="space-y-1.5">
                 <label className="text-[10px] uppercase font-extrabold tracking-wider text-stone-400">Email address</label>
                 <div className="relative">
-                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-stone-450">
+                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-stone-500">
                     <Mail size={14} />
                   </span>
                   <input
@@ -630,7 +630,7 @@ export default function Login({ onLogin }: LoginProps) {
         <div className="max-w-md w-full p-4 xs:p-6 md:p-8 bg-white dark:bg-[#111118] border border-stone-200 dark:border-stone-800 rounded-3xl shadow-xl space-y-5 xs:space-y-6 animate-fade-in relative z-10">
 
           <div className="space-y-1.5">
-            <h2 className="text-2xl font-bold font-serif text-stone-850 dark:text-white">
+            <h2 className="text-2xl font-bold font-serif text-stone-900 dark:text-white">
               {isRegister ? t('signupTitle') : t('loginTitle')}
             </h2>
             <p className="text-xs text-stone-400">
@@ -679,7 +679,7 @@ export default function Login({ onLogin }: LoginProps) {
 
             {isRegister && (
               <div className="space-y-1.5 text-left animate-slide-in">
-                <label className="text-[10px] uppercase font-extrabold tracking-wider text-stone-455 dark:text-stone-400">
+                <label className="text-[10px] uppercase font-extrabold tracking-wider text-stone-500 dark:text-stone-400">
                   Date of Birth
                 </label>
                 <input
@@ -700,11 +700,11 @@ export default function Login({ onLogin }: LoginProps) {
 
             {isRegister && (
               <div className="space-y-1.5 text-left">
-                <label className="text-[10px] uppercase font-extrabold tracking-wider text-stone-455 dark:text-stone-400">
+                <label className="text-[10px] uppercase font-extrabold tracking-wider text-stone-500 dark:text-stone-400">
                   {t('nameLabel')}
                 </label>
                 <div className="relative">
-                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-stone-450">
+                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-stone-500">
                     <UserIcon size={14} />
                   </span>
                   <input
@@ -720,11 +720,11 @@ export default function Login({ onLogin }: LoginProps) {
             )}
 
             <div className="space-y-1.5 text-left">
-              <label className="text-[10px] uppercase font-extrabold tracking-wider text-stone-455 dark:text-stone-400">
+              <label className="text-[10px] uppercase font-extrabold tracking-wider text-stone-500 dark:text-stone-400">
                 {t('emailLabel')}
               </label>
               <div className="relative">
-                <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-stone-450">
+                <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-stone-500">
                   <Mail size={14} />
                 </span>
                 <input
@@ -740,7 +740,7 @@ export default function Login({ onLogin }: LoginProps) {
 
             <div className="space-y-1.5 text-left">
               <div className="flex justify-between items-center">
-                <label className="text-[10px] uppercase font-extrabold tracking-wider text-stone-455 dark:text-stone-400">
+                <label className="text-[10px] uppercase font-extrabold tracking-wider text-stone-500 dark:text-stone-400">
                   {t('passwordLabel')}
                 </label>
                 {!isRegister && (
@@ -755,7 +755,7 @@ export default function Login({ onLogin }: LoginProps) {
                 )}
               </div>
               <div className="relative">
-                <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-stone-450">
+                <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-stone-500">
                   <Lock size={14} />
                 </span>
                 <input
@@ -805,7 +805,7 @@ export default function Login({ onLogin }: LoginProps) {
                 setView(nextReg ? 'register' : 'login');
                 setError(''); 
               }}
-              className="text-xs transition-colors hover:underline text-stone-550 dark:text-stone-450 cursor-pointer"
+              className="text-xs transition-colors hover:underline text-stone-550 dark:text-stone-500 cursor-pointer"
             >
               {isRegister
                 ? t('alreadyHaveAccount')

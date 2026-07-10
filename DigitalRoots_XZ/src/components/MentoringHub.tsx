@@ -156,7 +156,7 @@ export default function MentoringHub({ currentUser, token, onStartChat, onViewPr
       {/* Header */}
       <div className="flex justify-between items-center mb-6">
         <div>
-          <h2 className="text-2xl font-bold font-serif text-stone-850 dark:text-white flex items-center gap-2">
+          <h2 className="text-2xl font-bold font-serif text-stone-900 dark:text-white flex items-center gap-2">
             <Users style={{ color: 'var(--primary)' }} />
             {t('mentoringTitle')}
           </h2>
@@ -259,7 +259,7 @@ export default function MentoringHub({ currentUser, token, onStartChat, onViewPr
                               </div>
                               <div>
                                 <h4 
-                                  className="font-bold text-sm text-stone-850 dark:text-white cursor-pointer hover:underline"
+                                  className="font-bold text-sm text-stone-900 dark:text-white cursor-pointer hover:underline"
                                   onClick={() => onViewProfile?.(user.id)}
                                 >
                                   {user.name}
@@ -374,7 +374,7 @@ export default function MentoringHub({ currentUser, token, onStartChat, onViewPr
                           <div>
                             <div className="flex items-center gap-2">
                               <h4 
-                                className="font-bold text-sm text-stone-850 dark:text-white cursor-pointer hover:underline"
+                                className="font-bold text-sm text-stone-900 dark:text-white cursor-pointer hover:underline"
                                 onClick={() => onViewProfile?.(isMentor ? pair.menteeId : pair.mentorId)}
                               >
                                 {partnerName}
@@ -383,7 +383,7 @@ export default function MentoringHub({ currentUser, token, onStartChat, onViewPr
                                 {partnerRole}
                               </span>
                             </div>
-                            <p className="text-xs text-stone-450 mt-1">
+                            <p className="text-xs text-stone-500 mt-1">
                               {t('mentoringFocusLabel')}: <strong className="text-stone-300 capitalize">{pair.pairingType === 'cultural' ? t('mentoringTypeWisdom') : t('mentoringTypeSkills')} {t('mentoringPairingLabel')}</strong> — "{pair.skillFocus}"
                             </p>
                           </div>
@@ -475,7 +475,7 @@ export default function MentoringHub({ currentUser, token, onStartChat, onViewPr
               <X size={16} />
             </button>
 
-            <h3 className="text-lg font-bold font-serif text-stone-850 dark:text-white mb-2">
+            <h3 className="text-lg font-bold font-serif text-stone-900 dark:text-white mb-2">
               {t('mentoringProposeTitle')}
             </h3>
             <p className="text-xs text-stone-400 mb-6">

@@ -298,7 +298,7 @@ export default function InterviewManager({ currentUser, token }: InterviewManage
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
-          <h2 className="text-xl sm:text-2xl font-bold font-serif text-stone-850 dark:text-white flex items-center gap-2">
+          <h2 className="text-xl sm:text-2xl font-bold font-serif text-stone-900 dark:text-white flex items-center gap-2">
             <BookOpen style={{ color: 'var(--primary)' }} />
             Intergenerational Conversation Manager
           </h2>
@@ -381,7 +381,7 @@ export default function InterviewManager({ currentUser, token }: InterviewManage
                       >
                         <div>
                           <div className="flex justify-between items-start mb-3">
-                            <h4 className="font-bold text-sm text-stone-850 dark:text-white line-clamp-1">{interview.title}</h4>
+                            <h4 className="font-bold text-sm text-stone-900 dark:text-white line-clamp-1">{interview.title}</h4>
                             <span className={`text-[9px] px-2.5 py-1 rounded-full uppercase font-extrabold tracking-wider ${
                               interview.status === 'confirmed'
                                 ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20'
@@ -475,7 +475,7 @@ export default function InterviewManager({ currentUser, token }: InterviewManage
                       >
                         <div>
                           <div className="flex justify-between items-start mb-3">
-                            <h4 className="font-bold text-sm text-stone-850 dark:text-white line-clamp-1">{interview.title}</h4>
+                            <h4 className="font-bold text-sm text-stone-900 dark:text-white line-clamp-1">{interview.title}</h4>
                             <span className="text-[9px] px-2.5 py-1 rounded-full uppercase font-extrabold tracking-wider bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
                               Preserved
                             </span>
@@ -523,10 +523,10 @@ export default function InterviewManager({ currentUser, token }: InterviewManage
               <X size={16} />
             </button>
 
-            <h3 className="text-lg font-bold font-serif text-stone-850 dark:text-white mb-2">
+            <h3 className="text-lg font-bold font-serif text-stone-900 dark:text-white mb-2">
               Propose Intergenerational Conversation
             </h3>
-            <p className="text-xs text-stone-450 mb-6">
+            <p className="text-xs text-stone-500 mb-6">
               Invite a partner to hold a conversation on careers, life experience, technology, or other topics.
             </p>
 
@@ -656,7 +656,7 @@ export default function InterviewManager({ currentUser, token }: InterviewManage
               }`}>
                 <Mic size={32} style={{ color: 'var(--primary)' }} />
               </div>
-              <h3 className="text-xl font-bold font-serif text-stone-850 dark:text-white">{activeSession.title}</h3>
+              <h3 className="text-xl font-bold font-serif text-stone-900 dark:text-white">{activeSession.title}</h3>
               <p className="text-xs text-stone-400 mt-1 capitalize">
                 Intergenerational Conversation: {activeSession.archivistName} & {activeSession.subjectName}
               </p>

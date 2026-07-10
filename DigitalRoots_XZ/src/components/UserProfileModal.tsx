@@ -123,7 +123,7 @@ export default function UserProfileModal({ userId, currentUserId, onClose, onSta
             ) : (
               <div className={`w-20 h-20 rounded-3xl flex items-center justify-center text-2xl font-bold text-white bg-gradient-to-br shadow-lg mb-4 ${colorGradient}`}>{initials}</div>
             )}
-            <h3 className="text-lg font-bold text-stone-850 dark:text-white">{user.name}</h3>
+            <h3 className="text-lg font-bold text-stone-900 dark:text-white">{user.name}</h3>
             <div className="flex items-center gap-2 mt-1">
               {!isSelf && user.role && (
                 <span className="text-[10px] uppercase font-bold tracking-widest px-2.5 py-0.5 rounded bg-red-105/10 border border-red-500/20" style={{ color: 'var(--primary)' }}>{translatedRole}</span>

@@ -142,7 +142,7 @@ export default function AdminConsole({ token, currentUser }: AdminConsoleProps) 
             <Shield size={24} style={{ color: 'var(--primary)' }} />
           </div>
           <div>
-            <h1 className="text-xl font-bold font-serif text-stone-850 dark:text-white">Admin Console</h1>
+            <h1 className="text-xl font-bold font-serif text-stone-900 dark:text-white">Admin Console</h1>
             <p className="text-xs text-stone-400">Manage user status, roles, content moderation, and inspect system audit logs.</p>
           </div>
         </div>
@@ -167,7 +167,7 @@ export default function AdminConsole({ token, currentUser }: AdminConsoleProps) 
         <button
           onClick={() => setActiveSubTab('users')}
           className={`px-4 py-2.5 text-xs font-bold transition-all border-b-2 cursor-pointer ${
-            activeSubTab === 'users' ? 'border-red-500 text-[var(--primary)] font-extrabold' : 'border-transparent text-stone-450 hover:text-stone-700'
+            activeSubTab === 'users' ? 'border-red-500 text-[var(--primary)] font-extrabold' : 'border-transparent text-stone-500 hover:text-stone-700'
           }`}
         >
           User Directory ({users.length})
@@ -175,7 +175,7 @@ export default function AdminConsole({ token, currentUser }: AdminConsoleProps) 
         <button
           onClick={() => setActiveSubTab('content')}
           className={`px-4 py-2.5 text-xs font-bold transition-all border-b-2 cursor-pointer ${
-            activeSubTab === 'content' ? 'border-red-500 text-[var(--primary)] font-extrabold' : 'border-transparent text-stone-450 hover:text-stone-700'
+            activeSubTab === 'content' ? 'border-red-500 text-[var(--primary)] font-extrabold' : 'border-transparent text-stone-500 hover:text-stone-700'
           }`}
         >
           Flagged Content ({flaggedPosts.length})
@@ -183,7 +183,7 @@ export default function AdminConsole({ token, currentUser }: AdminConsoleProps) 
         <button
           onClick={() => setActiveSubTab('logs')}
           className={`px-4 py-2.5 text-xs font-bold transition-all border-b-2 cursor-pointer ${
-            activeSubTab === 'logs' ? 'border-red-500 text-[var(--primary)] font-extrabold' : 'border-transparent text-stone-450 hover:text-stone-700'
+            activeSubTab === 'logs' ? 'border-red-500 text-[var(--primary)] font-extrabold' : 'border-transparent text-stone-500 hover:text-stone-700'
           }`}
         >
           System Audit Logs ({auditLogs.length})
@@ -211,7 +211,7 @@ export default function AdminConsole({ token, currentUser }: AdminConsoleProps) 
                       placeholder="Search users by name or email..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      className="w-full pl-10 pr-4 py-2 rounded-xl outline-none border text-xs bg-[var(--bg-card)] dark:border-stone-850 text-stone-850 dark:text-white"
+                      className="w-full pl-10 pr-4 py-2 rounded-xl outline-none border text-xs bg-[var(--bg-card)] dark:border-stone-800 text-stone-900 dark:text-white"
                       style={{ borderColor: 'var(--border)' }}
                     />
                   </div>
@@ -219,7 +219,7 @@ export default function AdminConsole({ token, currentUser }: AdminConsoleProps) 
                     <select
                       value={roleFilter}
                       onChange={(e) => setRoleFilter(e.target.value)}
-                      className="px-3 py-2 rounded-xl border text-xs outline-none bg-[var(--bg-card)] dark:border-stone-850 text-stone-850 dark:text-white"
+                      className="px-3 py-2 rounded-xl border text-xs outline-none bg-[var(--bg-card)] dark:border-stone-800 text-stone-900 dark:text-white"
                       style={{ borderColor: 'var(--border)' }}
                     >
                       <option value="All">All Roles</option>
@@ -230,7 +230,7 @@ export default function AdminConsole({ token, currentUser }: AdminConsoleProps) 
                     <select
                       value={statusFilter}
                       onChange={(e) => setStatusFilter(e.target.value)}
-                      className="px-3 py-2 rounded-xl border text-xs outline-none bg-[var(--bg-card)] dark:border-stone-850 text-stone-850 dark:text-white"
+                      className="px-3 py-2 rounded-xl border text-xs outline-none bg-[var(--bg-card)] dark:border-stone-800 text-stone-900 dark:text-white"
                       style={{ borderColor: 'var(--border)' }}
                     >
                       <option value="All">All Statuses</option>
@@ -272,7 +272,7 @@ export default function AdminConsole({ token, currentUser }: AdminConsoleProps) 
                                   )}
                                 </div>
                                 <div className="text-left">
-                                  <p className="font-bold text-stone-850 dark:text-white">{u.name}</p>
+                                  <p className="font-bold text-stone-900 dark:text-white">{u.name}</p>
                                   <p className="text-[10px] text-stone-400">{u.email}</p>
                                 </div>
                               </td>
@@ -298,7 +298,7 @@ export default function AdminConsole({ token, currentUser }: AdminConsoleProps) 
                                 <button
                                   onClick={() => handleUpdateRole(u._id, u.role === 'Elder' ? 'Youth' : 'Elder')}
                                   title="Toggle Elder/Youth Role"
-                                  className="p-1.5 rounded-lg bg-[var(--bg-elevated)] border hover:bg-[var(--border)] text-stone-500 hover:text-stone-850 dark:hover:text-white transition-all cursor-pointer inline-flex items-center gap-1 font-bold"
+                                  className="p-1.5 rounded-lg bg-[var(--bg-elevated)] border hover:bg-[var(--border)] text-stone-500 hover:text-stone-900 dark:hover:text-white transition-all cursor-pointer inline-flex items-center gap-1 font-bold"
                                   style={{ borderColor: 'var(--border)' }}
                                 >
                                   <UserIcon size={12} />
@@ -433,7 +433,7 @@ export default function AdminConsole({ token, currentUser }: AdminConsoleProps) 
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5">
-                              <p className="text-xs font-bold text-stone-850 dark:text-white">
+                              <p className="text-xs font-bold text-stone-900 dark:text-white">
                                 <span className="text-red-500" style={{ color: 'var(--primary)' }}>{log.adminName}</span> {log.action.replace('_', ' ')}
                               </p>
                               <span className="text-[10px] text-stone-400">

@@ -601,7 +601,7 @@ export default function HomeDashboard({ currentUser, token, onNavigate, onPlaySt
           </div>
 
           {/* Points & Badges Section */}
-          <div className="flex flex-wrap gap-2.5 mt-4 pt-4 border-t border-stone-200 dark:border-stone-850 w-full relative z-10 select-none">
+          <div className="flex flex-wrap gap-2.5 mt-4 pt-4 border-t border-stone-200 dark:border-stone-800 w-full relative z-10 select-none">
             <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400">
               <Star size={14} className="fill-amber-500 text-amber-500" />
               <span className="text-xs font-bold">
@@ -617,7 +617,7 @@ export default function HomeDashboard({ currentUser, token, onNavigate, onPlaySt
                 </div>
               ))
             ) : (
-              <div className="flex items-center gap-1.25 px-3 py-1.5 rounded-xl bg-stone-500/5 border border-stone-200 dark:border-stone-850 text-stone-450 text-xs">
+              <div className="flex items-center gap-1.25 px-3 py-1.5 rounded-xl bg-stone-500/5 border border-stone-200 dark:border-stone-800 text-stone-500 text-xs">
                 <Award size={13} />
                 <span>{t('homeNoBadges')}</span>
               </div>
@@ -940,7 +940,7 @@ export default function HomeDashboard({ currentUser, token, onNavigate, onPlaySt
                       <div className="min-w-0">
                         <div className="flex items-center gap-1.5">
                           <h4 
-                            className="font-bold text-xs hover:underline cursor-pointer text-stone-850 dark:text-stone-200"
+                            className="font-bold text-xs hover:underline cursor-pointer text-stone-900 dark:text-stone-200"
                             onClick={() => onViewProfile(authorId)}
                           >
                             {authorName}
@@ -1195,7 +1195,7 @@ export default function HomeDashboard({ currentUser, token, onNavigate, onPlaySt
                                 <FileText size={20} />
                               </div>
                               <div className="min-w-0">
-                                <p className="text-[10px] text-stone-450 font-bold uppercase tracking-wider">Historical Document</p>
+                                <p className="text-[10px] text-stone-500 font-bold uppercase tracking-wider">Historical Document</p>
                                 <p className="text-xs text-stone-750 dark:text-stone-300 truncate font-semibold mt-0.5">
                                   {item.title || "Document Archive"}
                                 </p>

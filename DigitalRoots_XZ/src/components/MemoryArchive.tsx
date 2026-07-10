@@ -536,7 +536,7 @@ export default function MemoryArchive({ currentUser, token, autoPlayStory, onCle
                 )}
 
                 {/* Timer */}
-                <div className="text-4xl font-mono font-bold mt-4 mb-2 text-stone-850 dark:text-stone-205">
+                <div className="text-4xl font-mono font-bold mt-4 mb-2 text-stone-900 dark:text-stone-200">
                   {Math.floor(recordingSeconds / 60).toString().padStart(2, '0')}:
                   {(recordingSeconds % 60).toString().padStart(2, '0')}
                 </div>
@@ -751,7 +751,7 @@ export default function MemoryArchive({ currentUser, token, autoPlayStory, onCle
                           </span>
                           <span className="text-[10px] text-stone-400">{t('archiveByElder')} {story.elderName}</span>
                         </div>
-                        <h4 className="font-bold text-sm truncate mt-1 text-stone-850 dark:text-stone-150">{story.title}</h4>
+                        <h4 className="font-bold text-sm truncate mt-1 text-stone-900 dark:text-stone-200">{story.title}</h4>
                       </div>
                     </div>
 
@@ -943,7 +943,7 @@ export default function MemoryArchive({ currentUser, token, autoPlayStory, onCle
                             <span className="text-[10px] font-mono text-stone-400">{Math.floor(story.duration / 60)}:{(story.duration % 60).toString().padStart(2, '0')}</span>
                           </div>
 
-                          <h4 className="font-bold text-sm truncate mt-1 text-stone-850 dark:text-stone-150">{story.title}</h4>
+                          <h4 className="font-bold text-sm truncate mt-1 text-stone-900 dark:text-stone-200">{story.title}</h4>
                           <p className="text-[10px] text-stone-400">{t('archiveByElder')} {story.elderName}</p>
                           <p className="text-xs text-stone-500 dark:text-stone-400 line-clamp-2 mt-2 leading-relaxed">
                             {story.description || t('archiveNoDescription')}

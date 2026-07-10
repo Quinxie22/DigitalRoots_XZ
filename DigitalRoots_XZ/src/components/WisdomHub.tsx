@@ -719,7 +719,7 @@ export default function WisdomHub({ currentUser, token }: WisdomHubProps) {
               </div>
             ) : articles.length === 0 ? (
               <div className="py-24 text-center text-xs text-stone-400 bg-[var(--bg-card)] border border-dashed rounded-3xl p-8 max-w-lg mx-auto">
-                <AlertCircle size={24} className="mx-auto mb-3 text-stone-450" />
+                <AlertCircle size={24} className="mx-auto mb-3 text-stone-500" />
                 <h4 className="font-bold mb-1">{t('wisdomNoArticles')}</h4>
               </div>
             ) : (
@@ -866,8 +866,8 @@ export default function WisdomHub({ currentUser, token }: WisdomHubProps) {
                         <div key={comment._id || comment.timestamp} className="p-3.5 rounded-2xl bg-[var(--bg-elevated)] border text-xs text-stone-600 dark:text-stone-300 flex justify-between items-start gap-4" style={{ borderColor: 'var(--border)' }}>
                           <div className="space-y-1">
                             <div className="flex items-center gap-2">
-                              <span className="font-bold text-[10px] text-stone-705 dark:text-stone-200">{comment.userName}</span>
-                              <span className="text-[9px] text-stone-455">{new Date(comment.timestamp).toLocaleString()}</span>
+                              <span className="font-bold text-[10px] text-stone-700 dark:text-stone-200">{comment.userName}</span>
+                              <span className="text-[9px] text-stone-500">{new Date(comment.timestamp).toLocaleString()}</span>
                             </div>
                             <p className="text-stone-600 dark:text-stone-350 pr-4 leading-relaxed">{comment.text}</p>
                           </div>
@@ -892,7 +892,7 @@ export default function WisdomHub({ currentUser, token }: WisdomHubProps) {
                     onChange={(e) => setCommentText(e.target.value)}
                     placeholder={t('homeReflectionPlaceholder')}
                     required
-                    className="flex-1 px-4 py-2.5 rounded-xl border outline-none text-xs bg-[var(--bg-elevated)] text-stone-850 dark:text-white"
+                    className="flex-1 px-4 py-2.5 rounded-xl border outline-none text-xs bg-[var(--bg-elevated)] text-stone-900 dark:text-white"
                     style={{ borderColor: 'var(--border)' }}
                   />
                   <button
