@@ -1,5 +1,5 @@
 const mongoose = require('mongoose');
-const { getApps } = require('firebase-admin/app');
+const { initializeApp, cert, getApps } = require('firebase-admin/app');
 const { getAuth } = require('firebase-admin/auth');
 
 try {
@@ -8,6 +8,23 @@ try {
 
 const MONGO_URI = process.env.MONGODB_URI || 'mongodb://mongodb:27017';
 const email = 'queenmbiakop@gmail.com';
+
+const projectId = process.env.FIREBASE_PROJECT_ID;
+const privateKey = process.env.FIREBASE_PRIVATE_KEY;
+const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
+
+if (getApps().length === 0 && projectId && privateKey && clientEmail) {
+  initializeApp({
+    credential: cert({
+      projectId,
+      privateKey: privateKey.replace(/\\n/g, '\n'),
+      clientEmail,
+    }),
+  });
+  console.log('Firebase Admin SDK initialized successfully in cleanup script ✓');
+} else {
+  console.log('Firebase Admin SDK credentials missing or already initialized');
+}
 
 mongoose.connect(MONGO_URI, { dbName: 'xz_users' }).then(async () => {
   console.log('Connected to MongoDB');
@@ -23,8 +40,7 @@ mongoose.connect(MONGO_URI, { dbName: 'xz_users' }).then(async () => {
 
     if (firebaseUid) {
       try {
-        const { deleteFirebaseUser } = require('./dist/config/firebase');
-        await deleteFirebaseUser(firebaseUid);
+        await getAuth().deleteUser(firebaseUid);
         console.log('Firebase user deleted for UID:', firebaseUid);
       } catch (fbErr) {
         console.warn('Firebase user delete failed/ignored:', fbErr.message);
@@ -85,30 +101,19 @@ mongoose.connect(MONGO_URI, { dbName: 'xz_users' }).then(async () => {
     console.log('User document deleted from MongoDB');
   }
 
-  // Also clean up directly from Firebase Auth by email (if they registered but didn't save MongoDB doc)
+  // Direct clean by email
   try {
-    const { initFirebase } = require('./dist/config/firebase');
-    initFirebase();
-  } catch (err) {}
-
-  try {
-    if (getApps().length > 0) {
-      try {
-        const authUser = await getAuth().getUserByEmail(email);
-        if (authUser) {
-          await getAuth().deleteUser(authUser.uid);
-          console.log('Deleted user directly from Firebase by email:', email);
-        }
-      } catch (err) {
-        if (err.code !== 'auth/user-not-found') {
-          console.error('Error fetching/deleting direct firebase user:', err.message);
-        } else {
-          console.log('User not found directly in Firebase Auth by email.');
-        }
-      }
+    const authUser = await getAuth().getUserByEmail(email);
+    if (authUser) {
+      await getAuth().deleteUser(authUser.uid);
+      console.log('Deleted user directly from Firebase Auth by email:', email);
     }
   } catch (err) {
-    console.warn('Firebase direct clean failed:', err.message);
+    if (err.code !== 'auth/user-not-found') {
+      console.error('Error fetching/deleting direct firebase user:', err.message);
+    } else {
+      console.log('User not found directly in Firebase Auth by email.');
+    }
   }
 
   process.exit(0);
