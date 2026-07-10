@@ -1,8 +1,10 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, lazy, Suspense } from 'react';
 import type { User } from '../types';
 import { Loader, User as UserIcon, ShieldAlert, Check, Lock, Camera, Sun, Moon, Globe, Eye, EyeOff, Trash2 } from 'lucide-react';
 import { uploadGenericFile, resolveMediaUrl } from '../api';
 import { useTranslation } from 'react-i18next';
+
+const CustomDialog = lazy(() => import('./CustomDialog'));
 
 interface SettingsViewProps {
   currentUser: User;
@@ -55,16 +57,14 @@ export default function SettingsView({
     return calculatedAge;
   };
 
-  const handleDeleteAccount = async () => {
-    if (!window.confirm("WARNING: This will permanently delete your account and all associated data (posts, chats, mentoring pairings, and rewards). This action is IRREVERSIBLE. Are you absolutely sure?")) {
-      return;
-    }
-    
+  const executeDeleteAccount = async () => {
+    setDialogConfig(prev => ({ ...prev, isOpen: false }));
     setDeletingAccount(true);
     setError('');
     try {
       const token = sessionStorage.getItem('token') || localStorage.getItem('token') || '';
-      const res = await fetch(`${USER_SERVICE_URL}/api/users/${currentUser.id}`, {
+      const targetId = currentUser.id || (currentUser as any)._id || '';
+      const res = await fetch(`${USER_SERVICE_URL}/api/users/${targetId}`, {
         method: 'DELETE',
         headers: {
           Authorization: `Bearer ${token}`
@@ -73,15 +73,35 @@ export default function SettingsView({
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'Failed to delete account');
       
-      alert("Your account and all associated data have been permanently deleted. You will now be redirected to the sign-up screen.");
-      if (onLogout) {
-        onLogout();
-      }
+      setDialogConfig({
+        isOpen: true,
+        type: 'success',
+        title: 'Account Deleted',
+        message: 'Your account and all associated data have been permanently deleted.',
+        confirmLabel: 'Goodbye',
+        onConfirm: () => {
+          setDialogConfig(prev => ({ ...prev, isOpen: false }));
+          if (onLogout) onLogout();
+        }
+      });
     } catch (err: any) {
       setError(err.message || 'Error deleting account.');
     } finally {
       setDeletingAccount(false);
     }
+  };
+
+  const handleDeleteAccount = () => {
+    setDialogConfig({
+      isOpen: true,
+      type: 'warning',
+      title: 'Delete Account?',
+      message: 'WARNING: This will permanently delete your account and all associated data (posts, chats, mentoring pairings, and rewards). This action is IRREVERSIBLE. Are you absolutely sure?',
+      confirmLabel: 'Delete My Account',
+      cancelLabel: 'Cancel',
+      onConfirm: executeDeleteAccount,
+      onCancel: () => setDialogConfig(prev => ({ ...prev, isOpen: false })),
+    });
   };
   
   // Password change states
@@ -97,6 +117,23 @@ export default function SettingsView({
   const [profileSuccess, setProfileSuccess] = useState('');
   const [passwordSuccess, setPasswordSuccess] = useState('');
   const [error, setError] = useState('');
+
+  const [dialogConfig, setDialogConfig] = useState<{
+    isOpen: boolean;
+    type: 'info' | 'success' | 'warning' | 'error';
+    title: string;
+    message: string;
+    confirmLabel?: string;
+    cancelLabel?: string;
+    onConfirm: () => void;
+    onCancel?: () => void;
+  }>({
+    isOpen: false,
+    type: 'info',
+    title: '',
+    message: '',
+    onConfirm: () => {},
+  });
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -148,6 +185,14 @@ export default function SettingsView({
     if (selectedCats.length === 0) {
       setError('Please select at least one interest.');
       return;
+    }
+
+    if (dateOfBirth) {
+      const calculatedAge = calculateAge(dateOfBirth);
+      if (calculatedAge < 15 || calculatedAge > 250) {
+        setError('Age validation failed: Users must be between 15 and 250 years old.');
+        return;
+      }
     }
 
     setSavingProfile(true);
@@ -741,6 +786,19 @@ export default function SettingsView({
             </button>
           </div>
         )}
+
+        <Suspense fallback={null}>
+          <CustomDialog
+            isOpen={dialogConfig.isOpen}
+            type={dialogConfig.type}
+            title={dialogConfig.title}
+            message={dialogConfig.message}
+            confirmLabel={dialogConfig.confirmLabel}
+            cancelLabel={dialogConfig.cancelLabel}
+            onConfirm={dialogConfig.onConfirm}
+            onCancel={dialogConfig.onCancel}
+          />
+        </Suspense>
 
       </div>
 

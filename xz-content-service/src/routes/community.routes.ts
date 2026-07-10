@@ -11,8 +11,10 @@ router.get('/', CommunityController.getCommunities);
 router.get('/my', CommunityController.getMyCommunities);
 
 router.get('/:communityId', CommunityController.getCommunity);
+router.put('/:communityId', CommunityController.updateCommunity);
 router.post('/:communityId/join', CommunityController.joinCommunity);
 router.post('/:communityId/leave', CommunityController.leaveCommunity);
+router.delete('/:communityId/members/:targetUserId', CommunityController.removeCommunityMember);
 
 router.get('/:communityId/posts', CommunityController.getCommunityPosts);
 router.post('/:communityId/posts', CommunityController.createCommunityPost);

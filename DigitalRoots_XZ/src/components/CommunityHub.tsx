@@ -1,13 +1,16 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { 
   Users, Search, Plus, X, Globe, Lock, MessageSquare, 
   ThumbsUp, Calendar, Trash2, Shield, UserPlus, LogOut, Loader, Image as ImageIcon, Share2
 } from 'lucide-react';
 import { 
   getCommunities, getMyCommunities, createCommunity, 
-  joinCommunity, leaveCommunity, getCommunityPosts, createCommunityPost 
+  joinCommunity, leaveCommunity, getCommunityPosts, createCommunityPost,
+  updateCommunity, removeCommunityMember
 } from '../contentApi';
 import type { User, Community, Message } from '../types';
+
+const CustomDialog = lazy(() => import('./CustomDialog'));
 
 function getUserInfo(userId: string) {
   const usersJson = sessionStorage.getItem('users_list') || localStorage.getItem('users_list');
@@ -76,7 +79,7 @@ export default function CommunityHub({ currentUser, token }: CommunityHubProps) 
   const [submittingPost, setSubmittingPost] = useState(false);
 
   // Tab state in detailed view
-  const [activeSubTab, setActiveSubTab] = useState<'posts' | 'members' | 'rules'>('posts');
+  const [activeSubTab, setActiveSubTab] = useState<'posts' | 'members' | 'rules' | 'settings'>('posts');
   const [errorMsg, setErrorMsg] = useState('');
 
   // Group Invite & Share State
@@ -84,11 +87,121 @@ export default function CommunityHub({ currentUser, token }: CommunityHubProps) 
   const [inviting, setInviting] = useState(false);
   const [inviteError, setInviteError] = useState('');
 
+  // Community Settings Editor State
+  const [editName, setEditName] = useState('');
+  const [editDesc, setEditDesc] = useState('');
+  const [editCover, setEditCover] = useState('');
+  const [editRules, setEditRules] = useState<string[]>([]);
+  const [newRuleInput, setNewRuleInput] = useState('');
+  const [savingSettings, setSavingSettings] = useState(false);
+  const [settingsSuccess, setSettingsSuccess] = useState('');
+  const [settingsError, setSettingsError] = useState('');
+
+  // Dialog State
+  const [dialogConfig, setDialogConfig] = useState<{
+    isOpen: boolean;
+    type: 'info' | 'success' | 'warning' | 'error';
+    title: string;
+    message: string;
+    confirmLabel?: string;
+    cancelLabel?: string;
+    onConfirm: () => void;
+    onCancel?: () => void;
+  }>({
+    isOpen: false,
+    type: 'info',
+    title: '',
+    message: '',
+    onConfirm: () => {},
+  });
+
   const handleShareGroup = () => {
     if (!selectedCommunity) return;
     const shareUrl = `${window.location.origin}/community/${selectedCommunity.communityId}`;
     navigator.clipboard.writeText(shareUrl);
-    alert(`Community share link copied to clipboard!\n${shareUrl}`);
+    setDialogConfig({
+      isOpen: true,
+      type: 'success',
+      title: 'Link Copied',
+      message: `Community share link copied to clipboard!\n${shareUrl}`,
+      confirmLabel: 'Great',
+      onConfirm: () => setDialogConfig(prev => ({ ...prev, isOpen: false }))
+    });
+  };
+
+  const handleSaveSettings = async () => {
+    if (!selectedCommunity) return;
+    if (!editName.trim()) {
+      setSettingsError('Group name is required.');
+      return;
+    }
+    if (!editDesc.trim()) {
+      setSettingsError('About description is required.');
+      return;
+    }
+    setSavingSettings(true);
+    setSettingsSuccess('');
+    setSettingsError('');
+    try {
+      const res = await updateCommunity(token, selectedCommunity.communityId, {
+        name: editName,
+        description: editDesc,
+        coverImage: editCover,
+        rules: editRules
+      });
+      if (res.success) {
+        setSettingsSuccess('Group settings updated successfully!');
+        setSelectedCommunity(res.community);
+        fetchAllData();
+      }
+    } catch (err: any) {
+      setSettingsError(err.message || 'Failed to update community settings.');
+    } finally {
+      setSavingSettings(false);
+    }
+  };
+
+  const executeRemoveMember = async (targetUserId: string) => {
+    setDialogConfig(prev => ({ ...prev, isOpen: false }));
+    if (!selectedCommunity) return;
+    try {
+      const res = await removeCommunityMember(token, selectedCommunity.communityId, targetUserId);
+      if (res.success) {
+        setSelectedCommunity(res.community);
+        fetchAllData();
+        setDialogConfig({
+          isOpen: true,
+          type: 'success',
+          title: 'Member Removed',
+          message: 'Member has been successfully removed from the group.',
+          confirmLabel: 'OK',
+          onConfirm: () => setDialogConfig(prev => ({ ...prev, isOpen: false }))
+        });
+      }
+    } catch (err: any) {
+      setDialogConfig({
+        isOpen: true,
+        type: 'error',
+        title: 'Error',
+        message: err.message || 'Failed to remove member.',
+        confirmLabel: 'OK',
+        onConfirm: () => setDialogConfig(prev => ({ ...prev, isOpen: false }))
+      });
+    }
+  };
+
+  const handleRemoveMember = (memberId: string) => {
+    const memberInfo = getUserInfo(memberId);
+    setDialogConfig({
+      isOpen: true,
+      type: 'warning',
+      title: 'Remove Member?',
+      message: `Are you sure you want to remove ${memberInfo.name} from this community?`,
+      confirmLabel: 'Remove Member',
+      cancelLabel: 'Cancel',
+      onConfirm: () => executeRemoveMember(memberId),
+      onCancel: () => setDialogConfig(prev => ({ ...prev, isOpen: false }))
+    });
   };
 
   const availableInterests = ['Cultural', 'Traditional', 'Story', 'Proverb', 'Recipe', 'History', 'Educational', 'LanguageLearning', 'Music', 'Arts', 'Tech', 'Community'];
@@ -126,6 +239,12 @@ export default function CommunityHub({ currentUser, token }: CommunityHubProps) 
   useEffect(() => {
     if (selectedCommunity) {
       loadCommunityPosts(selectedCommunity.communityId);
+      setEditName(selectedCommunity.name || '');
+      setEditDesc(selectedCommunity.description || '');
+      setEditCover(selectedCommunity.coverImage || '');
+      setEditRules(selectedCommunity.rules || []);
+      setSettingsSuccess('');
+      setSettingsError('');
     }
   }, [selectedCommunity]);
 
@@ -385,6 +504,14 @@ export default function CommunityHub({ currentUser, token }: CommunityHubProps) 
                 >
                   About & Rules
                 </button>
+                {(selectedCommunity.creatorId === currentUser.id || selectedCommunity.admins.includes(currentUser.id)) && (
+                  <button
+                    onClick={() => setActiveSubTab('settings')}
+                    className={`py-3 border-b-2 px-1 cursor-pointer transition-all ${activeSubTab === 'settings' ? 'border-[var(--primary)] text-[var(--primary)]' : 'border-transparent hover:text-[var(--text-primary)]'}`}
+                  >
+                    Group Settings
+                  </button>
+                )}
               </div>
             </div>
 
@@ -552,7 +679,7 @@ export default function CommunityHub({ currentUser, token }: CommunityHubProps) 
                                 memberInfo.initials
                               )}
                             </div>
-                            <div className="overflow-hidden">
+                            <div className="flex-grow overflow-hidden">
                               <p className="text-xs font-semibold truncate text-[var(--text-primary)] flex items-center gap-1.5">
                                 {memberInfo.name}
                                 {isCreator && <span title="Group Host"><Shield size={12} className="text-amber-500" /></span>}
@@ -562,6 +689,17 @@ export default function CommunityHub({ currentUser, token }: CommunityHubProps) 
                                 {isCreator ? 'Group Host' : isMod ? 'Group Moderator' : 'Member'}
                               </p>
                             </div>
+                            
+                            {/* Remove Member Control for Host / Moderator */}
+                            {(selectedCommunity.creatorId === currentUser.id || selectedCommunity.admins.includes(currentUser.id)) && memberId !== selectedCommunity.creatorId && (
+                              <button
+                                onClick={() => handleRemoveMember(memberId)}
+                                className="text-stone-500 hover:text-red-500 p-1.5 transition-colors cursor-pointer"
+                                title="Remove Member from Group"
+                              >
+                                <X size={15} />
+                              </button>
+                            )}
                           </div>
                         );
                       })}
@@ -596,6 +734,121 @@ export default function CommunityHub({ currentUser, token }: CommunityHubProps) 
                   </div>
                 )}
 
+                {activeSubTab === 'settings' && (
+                  <div className="p-4 rounded-xl bg-[var(--bg-card)] border border-[var(--border)] shadow-sm flex flex-col gap-4 text-left">
+                    <div className="flex items-center justify-between border-b pb-2" style={{ borderColor: 'var(--border)' }}>
+                      <h4 className="text-sm font-bold">Group Settings (Host Tools)</h4>
+                    </div>
+
+                    {settingsError && (
+                      <div className="p-3.5 rounded-xl border border-red-500/20 bg-red-500/5 text-xs text-red-500 font-bold animate-slide-in">
+                        {settingsError}
+                      </div>
+                    )}
+
+                    {settingsSuccess && (
+                      <div className="p-3.5 rounded-xl border border-emerald-500/20 bg-emerald-500/5 text-xs text-emerald-400 font-bold animate-slide-in">
+                        {settingsSuccess}
+                      </div>
+                    )}
+
+                    {/* Group Name */}
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-[10px] uppercase font-extrabold tracking-wider text-stone-400">Group Name</label>
+                      <input
+                        type="text"
+                        value={editName}
+                        onChange={(e) => setEditName(e.target.value)}
+                        className="w-full px-3 py-2 text-xs bg-[var(--bg-elevated)] border rounded-xl outline-none text-white focus:border-[var(--primary)] transition-all"
+                        style={{ borderColor: 'var(--border)' }}
+                      />
+                    </div>
+
+                    {/* About Description */}
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-[10px] uppercase font-extrabold tracking-wider text-stone-400">About Description</label>
+                      <textarea
+                        value={editDesc}
+                        onChange={(e) => setEditDesc(e.target.value)}
+                        rows={4}
+                        className="w-full px-3 py-2 text-xs bg-[var(--bg-elevated)] border rounded-xl outline-none text-white focus:border-[var(--primary)] transition-all resize-none"
+                        style={{ borderColor: 'var(--border)' }}
+                      />
+                    </div>
+
+                    {/* Group Cover Photo URL */}
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-[10px] uppercase font-extrabold tracking-wider text-stone-400">Group Image URL</label>
+                      <input
+                        type="text"
+                        value={editCover}
+                        onChange={(e) => setEditCover(e.target.value)}
+                        placeholder="https://example.com/image.jpg"
+                        className="w-full px-3 py-2 text-xs bg-[var(--bg-elevated)] border rounded-xl outline-none text-white focus:border-[var(--primary)] transition-all"
+                        style={{ borderColor: 'var(--border)' }}
+                      />
+                    </div>
+
+                    {/* Group Rules List */}
+                    <div className="flex flex-col gap-2.5">
+                      <label className="text-[10px] uppercase font-extrabold tracking-wider text-stone-400">Group Rules</label>
+                      <div className="flex flex-col gap-2 bg-[var(--bg-elevated)] p-3 rounded-xl border border-stone-800">
+                        {editRules.map((rule, idx) => (
+                          <div key={idx} className="flex items-center justify-between text-xs py-1.5 border-b border-stone-850/50 last:border-b-0">
+                            <span className="text-stone-300 font-medium">{idx + 1}. {rule}</span>
+                            <button
+                              type="button"
+                              onClick={() => setEditRules(prev => prev.filter((_, i) => i !== idx))}
+                              className="text-stone-500 hover:text-red-500 transition-colors"
+                            >
+                              <X size={14} />
+                            </button>
+                          </div>
+                        ))}
+                        {editRules.length === 0 && <span className="text-xs text-stone-500">No custom rules added yet.</span>}
+                      </div>
+
+                      {/* Add New Rule Row */}
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          placeholder="Type a new rule..."
+                          value={newRuleInput}
+                          onChange={(e) => setNewRuleInput(e.target.value)}
+                          className="flex-grow px-3 py-2 text-xs bg-[var(--bg-elevated)] border rounded-xl outline-none text-white focus:border-[var(--primary)]"
+                          style={{ borderColor: 'var(--border)' }}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (!newRuleInput.trim()) return;
+                            setEditRules(prev => [...prev, newRuleInput.trim()]);
+                            setNewRuleInput('');
+                          }}
+                          className="px-3.5 py-2 bg-stone-850 hover:bg-stone-800 text-stone-200 text-xs font-bold rounded-xl border border-stone-800"
+                        >
+                          Add
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Save Button */}
+                    <button
+                      onClick={handleSaveSettings}
+                      disabled={savingSettings || !editName.trim() || !editDesc.trim()}
+                      className="w-full py-3 bg-[var(--primary)] hover:bg-[var(--primary-dark)] text-white text-xs font-extrabold rounded-2xl transition-all disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer shadow-md mt-2"
+                    >
+                      {savingSettings ? (
+                        <>
+                          <Loader className="animate-spin" size={14} />
+                          <span>Saving Changes...</span>
+                        </>
+                      ) : (
+                        <span>Save Group Settings</span>
+                      )}
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -716,6 +969,19 @@ export default function CommunityHub({ currentUser, token }: CommunityHubProps) 
           </div>
         </div>
       )}
+
+      <Suspense fallback={null}>
+        <CustomDialog
+          isOpen={dialogConfig.isOpen}
+          type={dialogConfig.type}
+          title={dialogConfig.title}
+          message={dialogConfig.message}
+          confirmLabel={dialogConfig.confirmLabel}
+          cancelLabel={dialogConfig.cancelLabel}
+          onConfirm={dialogConfig.onConfirm}
+          onCancel={dialogConfig.onCancel}
+        />
+      </Suspense>
 
     </div>
   );

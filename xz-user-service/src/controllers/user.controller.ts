@@ -51,7 +51,15 @@ export const register = async (req: Request, res: Response): Promise<void> => {
     }
 
     const calculatedAvatar = avatar || getInitials(name);
+    if (!dateOfBirth) {
+      res.status(400).json({ error: 'Validation Error', message: 'Date of birth is required' });
+      return;
+    }
     const calculatedAge = calculateAge(dateOfBirth);
+    if (calculatedAge < 15 || calculatedAge > 250) {
+      res.status(400).json({ error: 'Validation Error', message: 'Age validation failed: Users must be between 15 and 250 years old.' });
+      return;
+    }
     const userRole = role || (calculatedAge >= 40 ? 'Elder' : 'Youth');
 
     const newUser = new User({
@@ -249,10 +257,16 @@ export const updateProfile = async (req: AuthRequest, res: Response): Promise<vo
     if (avatar !== undefined) user.avatar = avatar;
     if (password !== undefined && password.trim() !== '') user.password = password;
     if (dateOfBirth !== undefined) {
-      (user as any).dateOfBirth = dateOfBirth ? new Date(dateOfBirth) : null;
       if (dateOfBirth) {
         const calculatedAge = calculateAge(dateOfBirth);
+        if (calculatedAge < 15 || calculatedAge > 250) {
+          res.status(400).json({ error: 'Validation Error', message: 'Age validation failed: Users must be between 15 and 250 years old.' });
+          return;
+        }
+        (user as any).dateOfBirth = new Date(dateOfBirth);
         user.role = role || (calculatedAge >= 40 ? 'Elder' : 'Youth');
+      } else {
+        (user as any).dateOfBirth = null;
       }
     }
 
@@ -454,8 +468,16 @@ export const firebaseLogin = async (req: Request, res: Response): Promise<void> 
         return;
       }
 
-      const initials = getInitials(firebaseName);
+      if (!dateOfBirth) {
+        res.status(400).json({ error: 'Validation Error', message: 'Date of birth is required' });
+        return;
+      }
       const calculatedAge = calculateAge(dateOfBirth);
+      if (calculatedAge < 15 || calculatedAge > 250) {
+        res.status(400).json({ error: 'Validation Error', message: 'Age validation failed: Users must be between 15 and 250 years old.' });
+        return;
+      }
+      const initials = getInitials(firebaseName);
       const calculatedRole = role || (calculatedAge >= 40 ? 'Elder' : 'Youth');
 
       user = new User({
@@ -465,7 +487,7 @@ export const firebaseLogin = async (req: Request, res: Response): Promise<void> 
         name: firebaseName,
         role: calculatedRole,
         avatar: initials,
-        dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : null,
+        dateOfBirth: new Date(dateOfBirth),
       });
       await user.save();
     }
@@ -611,17 +633,27 @@ export const deleteUser = async (req: AuthRequest, res: Response): Promise<void>
       return;
     }
 
-    // Permission check: user deleting themselves, or admin deleting
-    if (req.user.id !== userId && req.user.role !== 'Admin') {
-      res.status(403).json({ error: 'Forbidden', message: 'You do not have permission to delete this user' });
-      return;
+    let user;
+    if (typeof userId === 'string' && mongoose.Types.ObjectId.isValid(userId)) {
+      user = await User.findById(userId);
+    }
+    if (!user) {
+      user = await User.findOne({ firebaseUid: userId });
     }
 
-    const user = await User.findById(userId);
     if (!user) {
       res.status(404).json({ error: 'Not Found', message: 'User not found' });
       return;
     }
+
+    // Permission check: user deleting themselves, or admin deleting
+    const isSelf = req.user.id === user._id.toString() || req.user.id === user.firebaseUid;
+    if (!isSelf && req.user.role !== 'Admin') {
+      res.status(403).json({ error: 'Forbidden', message: 'You do not have permission to delete this user' });
+      return;
+    }
+
+    const targetUserIdStr = user._id.toString();
 
     // 1. Delete from Firebase Auth if firebaseUid exists
     if (user.firebaseUid) {
@@ -638,67 +670,67 @@ export const deleteUser = async (req: AuthRequest, res: Response): Promise<void>
 
     // Clean up content service database
     const contentDb = dbConnection.useDb('xz_content');
-    await contentDb.collection('posts').deleteMany({ authorId: userId });
-    await contentDb.collection('stories').deleteMany({ authorId: userId });
-    await contentDb.collection('knowledgearticles').deleteMany({ authorId: userId });
+    await contentDb.collection('posts').deleteMany({ authorId: targetUserIdStr });
+    await contentDb.collection('stories').deleteMany({ authorId: targetUserIdStr });
+    await contentDb.collection('knowledgearticles').deleteMany({ authorId: targetUserIdStr });
     
     // Pull user comments and reactions from posts
     await contentDb.collection('posts').updateMany(
       {},
-      { $pull: { comments: { userId } } as any }
+      { $pull: { comments: { userId: targetUserIdStr } } as any }
     );
     await contentDb.collection('posts').updateMany(
       {},
-      { $pull: { 'reactions.$[].userIds': userId } as any }
+      { $pull: { 'reactions.$[].userIds': targetUserIdStr } as any }
     );
     
     // Pull comments and reactions from stories
     await contentDb.collection('stories').updateMany(
       {},
-      { $pull: { comments: { userId } } as any }
+      { $pull: { comments: { userId: targetUserIdStr } } as any }
     );
     
     // Pull comments and reactions from knowledgearticles
     await contentDb.collection('knowledgearticles').updateMany(
       {},
-      { $pull: { comments: { userId } } as any }
+      { $pull: { comments: { userId: targetUserIdStr } } as any }
     );
 
     // Remove user from communities (members and admins)
     await contentDb.collection('communities').updateMany(
       {},
-      { $pull: { members: userId, admins: userId } as any }
+      { $pull: { members: targetUserIdStr, admins: targetUserIdStr } as any }
     );
     // If they created any community, delete it
-    await contentDb.collection('communities').deleteMany({ creatorId: userId });
+    await contentDb.collection('communities').deleteMany({ creatorId: targetUserIdStr });
 
     // Clean up chat service database
     const chatDb = dbConnection.useDb('xz_chat_db');
-    await chatDb.collection('messages').deleteMany({ senderId: userId });
+    await chatDb.collection('messages').deleteMany({ senderId: targetUserIdStr });
     await chatDb.collection('threads').updateMany(
       {},
-      { $pull: { participants: userId } as any }
+      { $pull: { participants: targetUserIdStr } as any }
     );
 
     // Clean up session service database
     const sessionDb = dbConnection.useDb('xz_sessions');
     await sessionDb.collection('mentoringpairings').deleteMany({
-      $or: [{ youthId: userId }, { elderId: userId }]
+      $or: [{ youthId: targetUserIdStr }, { elderId: targetUserIdStr }]
     });
     await sessionDb.collection('sessions').deleteMany({
-      $or: [{ youthId: userId }, { elderId: userId }, { mentorId: userId }]
+      $or: [{ youthId: targetUserIdStr }, { elderId: targetUserIdStr }, { mentorId: targetUserIdStr }]
     });
 
     // Clean up notifications database
     const notificationDb = dbConnection.useDb('xz_notifications');
-    await notificationDb.collection('notifications').deleteMany({ userId });
+    await notificationDb.collection('notifications').deleteMany({ userId: targetUserIdStr });
 
     // Clean up point service database
     const pointDb = dbConnection.useDb('xz_points');
-    await pointDb.collection('points').deleteMany({ userId });
+    await pointDb.collection('points').deleteMany({ userId: targetUserIdStr });
 
     // 3. Delete the user profile itself in user-service
-    await User.findByIdAndDelete(userId);
+    await User.findByIdAndDelete(targetUserIdStr);
 
     res.status(200).json({ success: true, message: 'User and all associated data deleted successfully.' });
   } catch (error: any) {

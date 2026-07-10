@@ -43,6 +43,10 @@ export default function RoleSelectionModal({
   const handleConfirm = async () => {
     if (dateOfBirth === '') return;
     const age = calculateAge(dateOfBirth);
+    if (age < 15 || age > 250) {
+      onError('Age validation failed: Users must be between 15 and 250 years old.');
+      return;
+    }
     const calculatedRole = age >= 40 ? 'Elder' : 'Youth';
     setSaving(true);
     try {

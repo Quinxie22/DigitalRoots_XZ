@@ -550,4 +550,32 @@ export async function createCommunityPost(token: string, communityId: string, bo
   return res.json();
 }
 
+export async function updateCommunity(token: string, communityId: string, body: { name?: string; description?: string; coverImage?: string; rules?: string[] }) {
+  const res = await fetch(`${CONTENT_URL}/api/content/communities/${communityId}`, {
+    method: 'PUT',
+    headers: {
+      ...authHeaders(token),
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    throw new Error(errorData.error || `updateCommunity failed: ${res.status}`);
+  }
+  return res.json();
+}
+
+export async function removeCommunityMember(token: string, communityId: string, targetUserId: string) {
+  const res = await fetch(`${CONTENT_URL}/api/content/communities/${communityId}/members/${targetUserId}`, {
+    method: 'DELETE',
+    headers: authHeaders(token),
+  });
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    throw new Error(errorData.error || `removeCommunityMember failed: ${res.status}`);
+  }
+  return res.json();
+}
+
 

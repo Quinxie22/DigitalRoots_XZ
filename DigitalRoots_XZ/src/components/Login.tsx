@@ -119,7 +119,17 @@ export default function Login({ onLogin }: LoginProps) {
         const idToken     = await credential.user.getIdToken();
 
         // 2. Exchange for our internal JWT, passing the chosen role + name
+        if (!dateOfBirth) {
+          setError('Date of birth is required.');
+          setLoading(false);
+          return;
+        }
         const calculatedAge = calculateAge(dateOfBirth);
+        if (calculatedAge < 15 || calculatedAge > 250) {
+          setError('Age validation failed: Users must be between 15 and 250 years old.');
+          setLoading(false);
+          return;
+        }
         const calculatedRole = calculatedAge >= 40 ? 'Elder' : 'Youth';
         const { data, ok } = await exchangeFirebaseToken(idToken, { role: calculatedRole, name, dateOfBirth } as any);
         if (!ok) throw new Error(data.message || 'Registration failed');

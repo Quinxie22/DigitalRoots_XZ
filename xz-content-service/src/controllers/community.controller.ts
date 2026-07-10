@@ -301,4 +301,95 @@ export class CommunityController {
       res.status(500).json({ success: false, error: error.message });
     }
   }
+
+  // Update community details
+  static async updateCommunity(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const communityId = req.params.communityId as string;
+      const { name, description, coverImage, rules } = req.body;
+      const requesterId = req.user?.firebase_uid;
+
+      if (!requesterId) {
+        res.status(401).json({ success: false, error: 'Unauthorized' });
+        return;
+      }
+
+      const community = await Community.findOne({ communityId });
+      if (!community) {
+        res.status(404).json({ success: false, error: 'Community not found' });
+        return;
+      }
+
+      // Authorization check: Only creator or admins can edit community details
+      const isAuthorized = community.creatorId === requesterId || community.admins.includes(requesterId);
+      if (!isAuthorized) {
+        res.status(403).json({ success: false, error: 'Only community hosts or moderators can update community settings' });
+        return;
+      }
+
+      if (name && name.trim() !== community.name) {
+        const nameExists = await Community.findOne({ name: name.trim() });
+        if (nameExists) {
+          res.status(400).json({ success: false, error: 'A community with this name already exists' });
+          return;
+        }
+        community.name = name.trim();
+      }
+
+      if (description !== undefined) community.description = description;
+      if (coverImage !== undefined) community.coverImage = coverImage;
+      if (rules !== undefined) community.rules = rules;
+
+      await community.save();
+      res.status(200).json({ success: true, community });
+    } catch (error: any) {
+      res.status(500).json({ success: false, error: error.message });
+    }
+  }
+
+  // Remove a member from community
+  static async removeCommunityMember(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const communityId = req.params.communityId as string;
+      const targetUserId = req.params.targetUserId as string;
+      const requesterId = req.user?.firebase_uid;
+
+      if (!requesterId) {
+        res.status(401).json({ success: false, error: 'Unauthorized' });
+        return;
+      }
+
+      const community = await Community.findOne({ communityId });
+      if (!community) {
+        res.status(404).json({ success: false, error: 'Community not found' });
+        return;
+      }
+
+      // Authorization check: Only creator or admins can remove members
+      const isAuthorized = community.creatorId === requesterId || community.admins.includes(requesterId);
+      if (!isAuthorized) {
+        res.status(403).json({ success: false, error: 'Only community hosts or moderators can remove members' });
+        return;
+      }
+
+      if (targetUserId === community.creatorId) {
+        res.status(400).json({ success: false, error: 'The community creator/host cannot be removed' });
+        return;
+      }
+
+      if (!community.members.includes(targetUserId)) {
+        res.status(400).json({ success: false, error: 'User is not a member of this community' });
+        return;
+      }
+
+      community.members = community.members.filter(m => m !== targetUserId);
+      community.admins = community.admins.filter(a => a !== targetUserId);
+      community.memberCount = community.members.length;
+      await community.save();
+
+      res.status(200).json({ success: true, community });
+    } catch (error: any) {
+      res.status(500).json({ success: false, error: error.message });
+    }
+  }
 }
