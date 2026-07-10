@@ -397,7 +397,7 @@ export default function SettingsView({
                   onChange={(e) => setName(e.target.value)}
                   required
                   placeholder="Your display name..."
-                  className="px-4 py-2.5 rounded-xl border outline-none text-xs bg-[var(--bg-elevated)] w-full text-white"
+                  className="px-4 py-2.5 rounded-xl border outline-none text-xs bg-[var(--bg-elevated)] w-full text-stone-850 dark:text-white"
                   style={{ borderColor: 'var(--border)' }}
                 />
               </div>
@@ -410,7 +410,7 @@ export default function SettingsView({
                   rows={2}
                   required
                   placeholder="Tell others about yourself..."
-                  className="px-4 py-2.5 rounded-xl border outline-none text-xs bg-[var(--bg-elevated)] w-full resize-none text-white"
+                  className="px-4 py-2.5 rounded-xl border outline-none text-xs bg-[var(--bg-elevated)] w-full resize-none text-stone-850 dark:text-white"
                   style={{ borderColor: 'var(--border)' }}
                 />
               </div>
@@ -423,7 +423,7 @@ export default function SettingsView({
                   onChange={(e) => setCommunity(e.target.value)}
                   required
                   placeholder="e.g. Sawa community, Coastal origin..."
-                  className="px-4 py-2.5 rounded-xl border outline-none text-xs bg-[var(--bg-elevated)] w-full text-white"
+                  className="px-4 py-2.5 rounded-xl border outline-none text-xs bg-[var(--bg-elevated)] w-full text-stone-850 dark:text-white"
                   style={{ borderColor: 'var(--border)' }}
                 />
               </div>
@@ -443,7 +443,7 @@ export default function SettingsView({
                         setRole(calculatedAge >= 40 ? 'Elder' : 'Youth');
                       }
                     }}
-                    className="px-4 py-2.5 rounded-xl border outline-none text-xs bg-[var(--bg-elevated)] w-full text-white"
+                    className="px-4 py-2.5 rounded-xl border outline-none text-xs bg-[var(--bg-elevated)] w-full text-stone-850 dark:text-white"
                     style={{ borderColor: 'var(--border)' }}
                   />
                 </div>
@@ -570,7 +570,7 @@ export default function SettingsView({
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
                     placeholder="••••••••"
-                    className="pl-4 pr-10 py-2.5 rounded-xl border outline-none text-xs bg-[var(--bg-elevated)] w-full text-white"
+                    className="pl-4 pr-10 py-2.5 rounded-xl border outline-none text-xs bg-[var(--bg-elevated)] w-full text-stone-850 dark:text-white"
                     style={{ borderColor: 'var(--border)' }}
                   />
                   <button
@@ -591,7 +591,7 @@ export default function SettingsView({
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     placeholder="••••••••"
-                    className="pl-4 pr-10 py-2.5 rounded-xl border outline-none text-xs bg-[var(--bg-elevated)] w-full text-white"
+                    className="pl-4 pr-10 py-2.5 rounded-xl border outline-none text-xs bg-[var(--bg-elevated)] w-full text-stone-850 dark:text-white"
                     style={{ borderColor: 'var(--border)' }}
                   />
                   <button

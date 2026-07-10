@@ -38,11 +38,14 @@ self.addEventListener('activate', (event) => {
 
 // Fetch Event
 self.addEventListener('fetch', (event) => {
-  if (event.request.method !== 'GET' || !event.request.url.startsWith(self.location.origin)) {
+  const url = new URL(event.request.url);
+  if (
+    event.request.method !== 'GET' || 
+    !event.request.url.startsWith(self.location.origin) ||
+    url.pathname.startsWith('/api/')
+  ) {
     return;
   }
-
-  const url = new URL(event.request.url);
 
   // Network-first for HTML requests (to avoid serving stale index.html pointing to old hashes)
   if (event.request.headers.get('accept')?.includes('text/html') || url.pathname === '/' || url.pathname === '/index.html') {
