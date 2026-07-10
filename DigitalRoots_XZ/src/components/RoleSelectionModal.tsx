@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Loader } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import CustomDialog from './CustomDialog';
 
 interface RoleSelectionModalProps {
   /** Data returned from the backend's needsRoleSelection response */
@@ -27,6 +28,21 @@ export default function RoleSelectionModal({
   const [dateOfBirth, setDateOfBirth] = useState('');
   const [saving, setSaving] = useState(false);
 
+  const [dialogConfig, setDialogConfig] = useState<{
+    isOpen: boolean;
+    type: 'info' | 'success' | 'warning' | 'error';
+    title: string;
+    message: string;
+    confirmLabel?: string;
+    onConfirm: () => void;
+  }>({
+    isOpen: false,
+    type: 'info',
+    title: '',
+    message: '',
+    onConfirm: () => {},
+  });
+
   const calculateAge = (dobString: string): number => {
     if (!dobString) return 0;
     const dob = new Date(dobString);
@@ -44,7 +60,13 @@ export default function RoleSelectionModal({
     if (dateOfBirth === '') return;
     const age = calculateAge(dateOfBirth);
     if (age < 15 || age > 250) {
-      onError('Age validation failed: Users must be between 15 and 250 years old.');
+      setDialogConfig({
+        isOpen: true,
+        type: 'error',
+        title: 'Age Validation Failed',
+        message: 'Age validation failed: Users must be between 15 and 250 years old to register. If you believe this is an error, please contact support with your justification.',
+        onConfirm: () => setDialogConfig(prev => ({ ...prev, isOpen: false }))
+      });
       return;
     }
     const calculatedRole = age >= 40 ? 'Elder' : 'Youth';
@@ -128,6 +150,13 @@ export default function RoleSelectionModal({
           )}
         </button>
       </div>
+      <CustomDialog
+        isOpen={dialogConfig.isOpen}
+        type={dialogConfig.type}
+        title={dialogConfig.title}
+        message={dialogConfig.message}
+        onConfirm={dialogConfig.onConfirm}
+      />
     </div>
   );
 }

@@ -219,7 +219,24 @@ export const verify = async (req: AuthRequest, res: Response): Promise<void> => 
       res.status(403).json({ error: 'Forbidden', message: `Your account is ${user ? user.status : 'disabled'}. Please contact an administrator.` });
       return;
     }
-    res.status(200).json({ valid: true, user: req.user });
+    res.status(200).json({
+      valid: true,
+      user: {
+        id: user._id,
+        email: user.email,
+        name: user.name,
+        role: user.role,
+        avatar: user.avatar,
+        bio: user.bio,
+        languages: user.languages,
+        community: user.community,
+        contentPreferences: user.contentPreferences,
+        legacyCredits: user.legacyCredits,
+        badges: user.badges,
+        dateOfBirth: (user as any).dateOfBirth,
+        age: (user as any).age,
+      }
+    });
   } catch (error: any) {
     res.status(500).json({ error: 'Internal Server Error', message: error.message });
   }

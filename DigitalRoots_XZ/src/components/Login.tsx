@@ -11,6 +11,7 @@ import {
 import { auth, googleProvider } from '../firebase';
 import RoleSelectionModal from './RoleSelectionModal';
 import OnboardingModal from './OnboardingModal';
+import CustomDialog from './CustomDialog';
 
 interface LoginProps {
   onLogin: (user: User) => void;
@@ -73,6 +74,21 @@ export default function Login({ onLogin }: LoginProps) {
   const [pendingOnboardingUser, setPendingOnboardingUser] = useState<User | null>(null);
   const [pendingOnboardingJwt, setPendingOnboardingJwt]   = useState('');
 
+  const [dialogConfig, setDialogConfig] = useState<{
+    isOpen: boolean;
+    type: 'info' | 'success' | 'warning' | 'error';
+    title: string;
+    message: string;
+    confirmLabel?: string;
+    onConfirm: () => void;
+  }>({
+    isOpen: false,
+    type: 'info',
+    title: '',
+    message: '',
+    onConfirm: () => {},
+  });
+
   useEffect(() => {
     document.documentElement.classList.add('auth-layout');
     document.body.classList.add('auth-layout');
@@ -126,7 +142,13 @@ export default function Login({ onLogin }: LoginProps) {
         }
         const calculatedAge = calculateAge(dateOfBirth);
         if (calculatedAge < 15 || calculatedAge > 250) {
-          setError('Age validation failed: Users must be between 15 and 250 years old.');
+          setDialogConfig({
+            isOpen: true,
+            type: 'error',
+            title: 'Age Validation Failed',
+            message: 'Age validation failed: Users must be between 15 and 250 years old to register. If you believe this is an error, please contact support with your justification.',
+            onConfirm: () => setDialogConfig(prev => ({ ...prev, isOpen: false }))
+          });
           setLoading(false);
           return;
         }
@@ -481,7 +503,13 @@ export default function Login({ onLogin }: LoginProps) {
             © 2026 Digital Roots. Bridging generations, preserving legacies.
           </div>
         </footer>
-
+        <CustomDialog
+          isOpen={dialogConfig.isOpen}
+          type={dialogConfig.type}
+          title={dialogConfig.title}
+          message={dialogConfig.message}
+          onConfirm={dialogConfig.onConfirm}
+        />
       </div>
     );
   }
@@ -821,7 +849,13 @@ export default function Login({ onLogin }: LoginProps) {
           </div>
         </div>
       </div>
-
+      <CustomDialog
+        isOpen={dialogConfig.isOpen}
+        type={dialogConfig.type}
+        title={dialogConfig.title}
+        message={dialogConfig.message}
+        onConfirm={dialogConfig.onConfirm}
+      />
     </div>
   );
 }

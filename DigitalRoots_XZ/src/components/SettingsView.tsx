@@ -190,7 +190,14 @@ export default function SettingsView({
     if (dateOfBirth) {
       const calculatedAge = calculateAge(dateOfBirth);
       if (calculatedAge < 15 || calculatedAge > 250) {
-        setError('Age validation failed: Users must be between 15 and 250 years old.');
+        setDialogConfig({
+          isOpen: true,
+          type: 'error',
+          title: 'Age Validation Failed',
+          message: 'Age validation failed: Users must be between 15 and 250 years old to update their profile. If you believe this is an error, please contact support with your justification.',
+          confirmLabel: 'OK',
+          onConfirm: () => setDialogConfig(prev => ({ ...prev, isOpen: false }))
+        });
         return;
       }
     }

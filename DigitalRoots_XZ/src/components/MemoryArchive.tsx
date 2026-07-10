@@ -673,13 +673,15 @@ export default function MemoryArchive({ currentUser, token, autoPlayStory, onCle
 
                   <div className="flex flex-col gap-1.5">
                     <label className="text-[10px] uppercase font-extrabold tracking-wider text-stone-400">{t('archiveLanguageLabel')}</label>
-                    <input 
-                      type="text" 
+                    <select 
                       value={recordLanguage}
                       onChange={(e) => setRecordLanguage(e.target.value)}
-                      className="px-4 py-2.5 rounded-xl border outline-none text-xs bg-[var(--bg-elevated)]"
+                      className="px-4 py-2.5 rounded-xl border outline-none text-xs bg-[var(--bg-elevated)] text-stone-800 dark:text-white"
                       style={{ borderColor: 'var(--border)' }}
-                    />
+                    >
+                      <option value="en">English (en)</option>
+                      <option value="fr">French (fr)</option>
+                    </select>
                   </div>
                 </div>
 
