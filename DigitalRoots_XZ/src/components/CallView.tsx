@@ -51,17 +51,29 @@ export default function CallView({
   showCaptions,
 }: CallViewProps) {
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
+  const remoteAudioRef = useRef<HTMLAudioElement>(null);
   const localVideoRef  = useRef<HTMLVideoElement>(null);
   const [isRecording, setIsRecording] = useState(false);
   const [volume, setVolume] = useState(true);
 
   // Attach streams to video elements and sync volume/mute state
   useEffect(() => {
-    if (remoteVideoRef.current) {
-      if (remoteStream) {
-        remoteVideoRef.current.srcObject = remoteStream;
-      }
-      remoteVideoRef.current.muted = !volume;
+    if (remoteVideoRef.current && remoteStream) {
+      remoteVideoRef.current.srcObject = remoteStream;
+      remoteVideoRef.current.play().catch(err => {
+        console.warn('[WebRTC] Remote video autoplay blocked:', err);
+      });
+    }
+  }, [remoteStream]);
+
+  // Handle remote audio stream separately (unmuted, plays through hidden audio tag)
+  useEffect(() => {
+    if (remoteAudioRef.current && remoteStream) {
+      remoteAudioRef.current.srcObject = remoteStream;
+      remoteAudioRef.current.muted = !volume;
+      remoteAudioRef.current.play().catch(err => {
+        console.warn('[WebRTC] Remote audio autoplay blocked:', err);
+      });
     }
   }, [remoteStream, volume]);
 
@@ -121,12 +133,21 @@ export default function CallView({
       {/* ── Remote Video (main view) ───────────────────────────── */}
       <div className="relative flex-1 overflow-hidden">
         {remoteStream ? (
-          <video
-            ref={remoteVideoRef}
-            autoPlay
-            playsInline
-            className="absolute inset-0 w-full h-full object-cover"
-          />
+          <>
+            <video
+              ref={remoteVideoRef}
+              autoPlay
+              muted
+              playsInline
+              className="absolute inset-0 w-full h-full object-cover"
+            />
+            <audio
+              ref={remoteAudioRef}
+              autoPlay
+              playsInline
+              className="hidden"
+            />
+          </>
         ) : (
           <NoStreamPlaceholder
             label={isInCall ? remoteName : 'No active call'}
