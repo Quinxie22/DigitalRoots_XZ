@@ -1,15 +1,15 @@
 const mongoose = require('mongoose');
-const admin = require('firebase-admin');
+const { getApps } = require('firebase-admin/app');
+const { getAuth } = require('firebase-admin/auth');
 
-// Dotenv loading
 try {
   require('dotenv').config();
 } catch (e) {}
 
-const MONGO_URI = process.env.MONGODB_URI || 'mongodb://xz-mongodb:27017/xz_users';
+const MONGO_URI = process.env.MONGODB_URI || 'mongodb://mongodb:27017';
 const email = 'queenmbiakop@gmail.com';
 
-mongoose.connect(MONGO_URI).then(async () => {
+mongoose.connect(MONGO_URI, { dbName: 'xz_users' }).then(async () => {
   console.log('Connected to MongoDB');
   
   const db = mongoose.connection.db;
@@ -87,12 +87,16 @@ mongoose.connect(MONGO_URI).then(async () => {
 
   // Also clean up directly from Firebase Auth by email (if they registered but didn't save MongoDB doc)
   try {
-    const adminApp = admin.apps.length > 0 ? admin.app() : null;
-    if (adminApp) {
+    const { initFirebase } = require('./dist/config/firebase');
+    initFirebase();
+  } catch (err) {}
+
+  try {
+    if (getApps().length > 0) {
       try {
-        const authUser = await admin.auth().getUserByEmail(email);
+        const authUser = await getAuth().getUserByEmail(email);
         if (authUser) {
-          await admin.auth().deleteUser(authUser.uid);
+          await getAuth().deleteUser(authUser.uid);
           console.log('Deleted user directly from Firebase by email:', email);
         }
       } catch (err) {
