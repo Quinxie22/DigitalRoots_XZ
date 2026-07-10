@@ -308,7 +308,7 @@ export default function SettingsView({
               </div>
               <h3 className="font-serif font-bold text-sm">{t('profileDetails')}</h3>
             </div>
-            <p className="text-xs text-stone-400 leading-relaxed">
+            <p className="text-xs text-stone-500 dark:text-stone-400 leading-relaxed">
               {t('profileDetailsDesc')}
             </p>
           </div>
@@ -327,7 +327,7 @@ export default function SettingsView({
               
               {/* Profile Picture / Avatar selector */}
               <div className="flex flex-col gap-3 text-left">
-                <label className="text-[10px] uppercase font-extrabold tracking-wider text-stone-400">Profile Picture / Avatar</label>
+                <label className="text-[10px] uppercase font-extrabold tracking-wider text-stone-500 dark:text-stone-400">Profile Picture / Avatar</label>
                 <div className="flex items-center gap-4">
                   {/* Current Avatar Preview */}
                   {avatar && (avatar.startsWith('http') || avatar.startsWith('/') || avatar.includes('.')) ? (
@@ -390,40 +390,40 @@ export default function SettingsView({
               </div>
 
               <div className="flex flex-col gap-1.5 text-left">
-                <label className="text-[10px] uppercase font-extrabold tracking-wider text-stone-400">{t('fullName')}</label>
+                <label className="text-[10px] uppercase font-extrabold tracking-wider text-stone-500 dark:text-stone-400">{t('fullName')}</label>
                 <input
                   type="text"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   required
                   placeholder="Your display name..."
-                  className="px-4 py-2.5 rounded-xl border outline-none text-xs bg-[var(--bg-elevated)] w-full text-stone-850 dark:text-white"
+                  className="px-4 py-2.5 rounded-xl border outline-none text-xs bg-[var(--bg-elevated)] w-full text-stone-800 dark:text-white"
                   style={{ borderColor: 'var(--border)' }}
                 />
               </div>
 
               <div className="flex flex-col gap-1.5 text-left">
-                <label className="text-[10px] uppercase font-extrabold tracking-wider text-stone-400">{t('shortBio')}</label>
+                <label className="text-[10px] uppercase font-extrabold tracking-wider text-stone-500 dark:text-stone-400">{t('shortBio')}</label>
                 <textarea
                   value={bio}
                   onChange={(e) => setBio(e.target.value)}
                   rows={2}
                   required
                   placeholder="Tell others about yourself..."
-                  className="px-4 py-2.5 rounded-xl border outline-none text-xs bg-[var(--bg-elevated)] w-full resize-none text-stone-850 dark:text-white"
+                  className="px-4 py-2.5 rounded-xl border outline-none text-xs bg-[var(--bg-elevated)] w-full resize-none text-stone-800 dark:text-white"
                   style={{ borderColor: 'var(--border)' }}
                 />
               </div>
 
               <div className="flex flex-col gap-1.5 text-left">
-                <label className="text-[10px] uppercase font-extrabold tracking-wider text-stone-400">{t('communityOrigin')}</label>
+                <label className="text-[10px] uppercase font-extrabold tracking-wider text-stone-500 dark:text-stone-400">{t('communityOrigin')}</label>
                 <input
                   type="text"
                   value={community}
                   onChange={(e) => setCommunity(e.target.value)}
                   required
                   placeholder="e.g. Sawa community, Coastal origin..."
-                  className="px-4 py-2.5 rounded-xl border outline-none text-xs bg-[var(--bg-elevated)] w-full text-stone-850 dark:text-white"
+                  className="px-4 py-2.5 rounded-xl border outline-none text-xs bg-[var(--bg-elevated)] w-full text-stone-800 dark:text-white"
                   style={{ borderColor: 'var(--border)' }}
                 />
               </div>
@@ -431,7 +431,7 @@ export default function SettingsView({
               {/* DOB & Role Fields */}
               <div className="grid grid-cols-2 gap-4">
                 <div className="flex flex-col gap-1.5 text-left">
-                  <label className="text-[10px] uppercase font-extrabold tracking-wider text-stone-400">Date of Birth</label>
+                  <label className="text-[10px] uppercase font-extrabold tracking-wider text-stone-500 dark:text-stone-400">Date of Birth</label>
                   <input
                     type="date"
                     value={dateOfBirth}
@@ -443,19 +443,19 @@ export default function SettingsView({
                         setRole(calculatedAge >= 40 ? 'Elder' : 'Youth');
                       }
                     }}
-                    className="px-4 py-2.5 rounded-xl border outline-none text-xs bg-[var(--bg-elevated)] w-full text-stone-850 dark:text-white"
+                    className="px-4 py-2.5 rounded-xl border outline-none text-xs bg-[var(--bg-elevated)] w-full text-stone-800 dark:text-white"
                     style={{ borderColor: 'var(--border)' }}
                   />
                 </div>
 
                 <div className="flex flex-col gap-1.5 text-left">
-                  <label className="text-[10px] uppercase font-extrabold tracking-wider text-stone-400">Calculated Age & Role</label>
+                  <label className="text-[10px] uppercase font-extrabold tracking-wider text-stone-500 dark:text-stone-400">Calculated Age & Role</label>
                   <input
                     type="text"
                     value={dateOfBirth ? `${calculateAge(dateOfBirth)} years old (${role === 'Elder' ? t('senior', 'Elder') : role === 'Youth' ? t('youth', 'Youth') : role})` : 'Select DOB...'}
                     readOnly
                     disabled
-                    className="px-4 py-2.5 rounded-xl border outline-none text-xs bg-[var(--bg-elevated)] w-full text-stone-450 cursor-not-allowed opacity-75"
+                    className="px-4 py-2.5 rounded-xl border outline-none text-xs bg-[var(--bg-elevated)] w-full text-stone-600 dark:text-stone-400 cursor-not-allowed opacity-75"
                     style={{ borderColor: 'var(--border)' }}
                   />
                 </div>
@@ -463,7 +463,7 @@ export default function SettingsView({
 
               {/* Language toggler */}
               <div className="flex flex-col gap-1.5 text-left">
-                <label className="text-[10px] uppercase font-extrabold tracking-wider text-stone-400">{t('languagesSpoken')}</label>
+                <label className="text-[10px] uppercase font-extrabold tracking-wider text-stone-500 dark:text-stone-400">{t('languagesSpoken')}</label>
                 <div className="flex gap-3 mt-1">
                   {['English', 'French'].map(lang => {
                     const isSelected = selectedLangs.includes(lang);
@@ -473,7 +473,7 @@ export default function SettingsView({
                         type="button"
                         onClick={() => toggleLanguage(lang)}
                         className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl border text-xs font-bold transition-all ${
-                          isSelected ? 'bg-red-500/10 text-red-500 border-red-500/30' : 'bg-transparent text-stone-450'
+                          isSelected ? 'bg-red-500/10 text-red-500 border-red-500/30' : 'bg-transparent text-stone-600 dark:text-stone-400'
                         }`}
                         style={{ borderColor: isSelected ? 'var(--primary)' : 'var(--border)' }}
                       >
@@ -487,7 +487,7 @@ export default function SettingsView({
 
               {/* Interests Preferences list */}
               <div className="flex flex-col gap-1.5 text-left">
-                <label className="text-[10px] uppercase font-extrabold tracking-wider text-stone-400">{t('interestsPreferences')}</label>
+                <label className="text-[10px] uppercase font-extrabold tracking-wider text-stone-500 dark:text-stone-400">{t('interestsPreferences')}</label>
                 <div className="flex flex-wrap gap-2 mt-1">
                   {CATEGORIES.map(cat => {
                     const isSelected = selectedCats.includes(cat);
@@ -497,7 +497,7 @@ export default function SettingsView({
                         type="button"
                         onClick={() => toggleCategory(cat)}
                         className={`text-[11px] px-3 py-1.5 rounded-full border transition-all ${
-                          isSelected ? 'bg-red-500/10 text-red-500 border-red-500/30 font-bold' : 'bg-transparent text-stone-455'
+                          isSelected ? 'bg-red-500/10 text-red-500 border-red-500/30 font-bold' : 'bg-transparent text-stone-600 dark:text-stone-400'
                         }`}
                         style={{ borderColor: isSelected ? 'var(--primary)' : 'var(--border)' }}
                       >
@@ -545,7 +545,7 @@ export default function SettingsView({
               </div>
               <h3 className="font-serif font-bold text-sm">{t('security')}</h3>
             </div>
-            <p className="text-xs text-stone-400 leading-relaxed">
+            <p className="text-xs text-stone-500 dark:text-stone-400 leading-relaxed">
               {t('securityDesc')}
             </p>
           </div>
@@ -563,14 +563,14 @@ export default function SettingsView({
             <form onSubmit={handleUpdatePassword} className="space-y-4">
               
               <div className="flex flex-col gap-1.5 text-left">
-                <label className="text-[10px] uppercase font-extrabold tracking-wider text-stone-400">{t('newPassword')}</label>
+                <label className="text-[10px] uppercase font-extrabold tracking-wider text-stone-500 dark:text-stone-400">{t('newPassword')}</label>
                 <div className="relative">
                   <input
                     type={showNewPassword ? "text" : "password"}
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
                     placeholder="••••••••"
-                    className="pl-4 pr-10 py-2.5 rounded-xl border outline-none text-xs bg-[var(--bg-elevated)] w-full text-stone-850 dark:text-white"
+                    className="pl-4 pr-10 py-2.5 rounded-xl border outline-none text-xs bg-[var(--bg-elevated)] w-full text-stone-800 dark:text-white"
                     style={{ borderColor: 'var(--border)' }}
                   />
                   <button
@@ -584,14 +584,14 @@ export default function SettingsView({
               </div>
 
               <div className="flex flex-col gap-1.5 text-left">
-                <label className="text-[10px] uppercase font-extrabold tracking-wider text-stone-400">{t('confirmNewPassword')}</label>
+                <label className="text-[10px] uppercase font-extrabold tracking-wider text-stone-500 dark:text-stone-400">{t('confirmNewPassword')}</label>
                 <div className="relative">
                   <input
                     type={showConfirmPassword ? "text" : "password"}
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     placeholder="••••••••"
-                    className="pl-4 pr-10 py-2.5 rounded-xl border outline-none text-xs bg-[var(--bg-elevated)] w-full text-stone-850 dark:text-white"
+                    className="pl-4 pr-10 py-2.5 rounded-xl border outline-none text-xs bg-[var(--bg-elevated)] w-full text-stone-800 dark:text-white"
                     style={{ borderColor: 'var(--border)' }}
                   />
                   <button
@@ -643,7 +643,7 @@ export default function SettingsView({
                   </div>
                   <h3 className="font-serif font-bold text-sm">{t('themePreferences')}</h3>
                 </div>
-                <p className="text-xs text-stone-400 leading-relaxed">
+                <p className="text-xs text-stone-500 dark:text-stone-400 leading-relaxed">
                   {t('themePreferencesDesc')}
                 </p>
               </div>
@@ -652,8 +652,8 @@ export default function SettingsView({
               <div className="md:col-span-2 bg-[var(--bg-card)] border rounded-3xl p-6 shadow-sm space-y-4" style={{ borderColor: 'var(--border)' }}>
                 <div className="flex items-center justify-between">
                   <div className="space-y-1 text-left">
-                    <h4 className="text-xs font-bold text-stone-850 dark:text-white">{t('darkTheme')}</h4>
-                    <p className="text-[11px] text-stone-450 dark:text-stone-400">
+                    <h4 className="text-xs font-bold text-stone-800 dark:text-white">{t('darkTheme')}</h4>
+                    <p className="text-[11px] text-stone-600 dark:text-stone-400">
                       Enable a darker interface to reduce eye strain in low-light environments.
                     </p>
                   </div>
@@ -688,7 +688,7 @@ export default function SettingsView({
             <Trash2 size={16} />
             <h4>Danger Zone</h4>
           </div>
-          <p className="text-xs text-stone-400 leading-relaxed">
+          <p className="text-xs text-stone-500 dark:text-stone-400 leading-relaxed">
             Permanently delete your profile and wipe all related documents including stories, posts, private messages, pairing requests, and rewards. This action cannot be undone.
           </p>
           <div className="mt-1">
@@ -720,7 +720,7 @@ export default function SettingsView({
               </div>
               <h3 className="font-serif font-bold text-sm">{t('uiLanguage')}</h3>
             </div>
-            <p className="text-xs text-stone-400 leading-relaxed">
+            <p className="text-xs text-stone-500 dark:text-stone-400 leading-relaxed">
               {t('uiLanguageDesc')}
             </p>
           </div>
@@ -735,7 +735,7 @@ export default function SettingsView({
                   localStorage.setItem('ui-language', 'en');
                 }}
                 className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl border text-xs font-bold transition-all ${
-                  i18n.language === 'en' ? 'bg-red-500/10 text-red-500 border-red-500/30' : 'bg-transparent text-stone-450'
+                  i18n.language === 'en' ? 'bg-red-500/10 text-red-500 border-red-500/30' : 'bg-transparent text-stone-600 dark:text-stone-400'
                 }`}
                 style={{ borderColor: i18n.language === 'en' ? 'var(--primary)' : 'var(--border)' }}
               >
@@ -749,7 +749,7 @@ export default function SettingsView({
                   localStorage.setItem('ui-language', 'fr');
                 }}
                 className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl border text-xs font-bold transition-all ${
-                  i18n.language === 'fr' ? 'bg-red-500/10 text-red-500 border-red-500/30' : 'bg-transparent text-stone-450'
+                  i18n.language === 'fr' ? 'bg-red-500/10 text-red-500 border-red-500/30' : 'bg-transparent text-stone-600 dark:text-stone-400'
                 }`}
                 style={{ borderColor: i18n.language === 'fr' ? 'var(--primary)' : 'var(--border)' }}
               >
