@@ -55,12 +55,15 @@ export default function CallView({
   const [isRecording, setIsRecording] = useState(false);
   const [volume, setVolume] = useState(true);
 
-  // Attach streams to video elements when they change
+  // Attach streams to video elements and sync volume/mute state
   useEffect(() => {
-    if (remoteVideoRef.current && remoteStream) {
-      remoteVideoRef.current.srcObject = remoteStream;
+    if (remoteVideoRef.current) {
+      if (remoteStream) {
+        remoteVideoRef.current.srcObject = remoteStream;
+      }
+      remoteVideoRef.current.muted = !volume;
     }
-  }, [remoteStream]);
+  }, [remoteStream, volume]);
 
   useEffect(() => {
     if (localVideoRef.current && localStream) {

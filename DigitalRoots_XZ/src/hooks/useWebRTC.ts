@@ -71,6 +71,22 @@ export function useWebRTC(_currentUserId: string, threadId: string) {
 
   const pcRef   = useRef<RTCPeerConnection | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  const candidatesQueueRef = useRef<any[]>([]);
+
+  const processCandidatesQueue = useCallback(async () => {
+    if (pcRef.current && pcRef.current.remoteDescription) {
+      console.log('[WebRTC] Processing queued ICE candidates:', candidatesQueueRef.current.length);
+      const queue = [...candidatesQueueRef.current];
+      candidatesQueueRef.current = [];
+      for (const candidate of queue) {
+        try {
+          await pcRef.current.addIceCandidate(new RTCIceCandidate(candidate));
+        } catch (e) {
+          console.warn('[WebRTC] Failed to add queued ICE candidate:', e);
+        }
+      }
+    }
+  }, []);
 
   // Get local camera/mic stream, falling back to mock if not available
   const getLocalStream = useCallback(async (): Promise<MediaStream> => {
@@ -94,6 +110,7 @@ export function useWebRTC(_currentUserId: string, threadId: string) {
     streamRef.current?.getTracks().forEach((t) => t.stop());
     streamRef.current = null;
 
+    candidatesQueueRef.current = [];
     setLocalStream(null);
     setRemoteStream(null);
     setIsInCall(false);
@@ -110,8 +127,18 @@ export function useWebRTC(_currentUserId: string, threadId: string) {
 
     // When we get a remote media track, expose it as remoteStream
     pc.ontrack = (e) => {
-      const [remStream] = e.streams;
-      setRemoteStream(remStream);
+      console.log('[WebRTC] Remote track received:', e.track.kind);
+      if (e.streams && e.streams[0]) {
+        setRemoteStream(e.streams[0]);
+      } else {
+        setRemoteStream((prev) => {
+          const stream = prev || new MediaStream();
+          if (!stream.getTracks().find(t => t.id === e.track.id)) {
+            stream.addTrack(e.track);
+          }
+          return stream;
+        });
+      }
     };
 
     // When ICE finds a candidate, send it to the other peer via socket
@@ -181,6 +208,7 @@ export function useWebRTC(_currentUserId: string, threadId: string) {
 
       // Set the caller's offer as the remote description
       await pc.setRemoteDescription(new RTCSessionDescription(offer));
+      await processCandidatesQueue();
 
       // Create an answer and send it back
       const answer = await pc.createAnswer();
@@ -241,16 +269,19 @@ export function useWebRTC(_currentUserId: string, threadId: string) {
     socket.on('webrtc-answer', async ({ answer }) => {
       if (pcRef.current) {
         await pcRef.current.setRemoteDescription(new RTCSessionDescription(answer));
+        await processCandidatesQueue();
       }
     });
 
     socket.on('webrtc-candidate', async ({ candidate }) => {
-      if (pcRef.current && candidate) {
+      if (pcRef.current && pcRef.current.remoteDescription && candidate) {
         try {
           await pcRef.current.addIceCandidate(new RTCIceCandidate(candidate));
         } catch (e) {
           console.warn('Failed to add ICE candidate', e);
         }
+      } else if (candidate) {
+        candidatesQueueRef.current.push(candidate);
       }
     });
 
@@ -265,7 +296,7 @@ export function useWebRTC(_currentUserId: string, threadId: string) {
       socket.off('webrtc-candidate');
       socket.off('call-ended');
     };
-  }, [endCall]);
+  }, [endCall, processCandidatesQueue]);
 
   return {
     localStream,
